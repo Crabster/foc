@@ -1,0 +1,7 @@
+int fun(int var) {
+    int var1 = 125;
+    while (true) {
+        continue;
+    }
+    return 125;
+}
