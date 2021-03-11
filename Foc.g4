@@ -4,47 +4,47 @@ grammar Foc;
 
 program: decls EOF;
 
-decls: var_decl decls
-     | var_decl
-     | fun_decl decls
+decls: varDecl decls
+     | funDecl decls
      | /* epsilon */;
 
-var_decl: type ID Semicolon 
-        | type ID Equal expr Semicolon;
+varDecl: type ID Semicolon 
+       | type ID Equal expr Semicolon;
 
-fun_decl: type ID OpenPar fun_args ClosePar OpenCurly fun_body CloseCurly;
+funDecl: type ID OpenPar funArgs ClosePar OpenCurly funBody CloseCurly;
 
-fun_args: type ID fun_args 
-        | /* epsilon */;
+funArgs: type ID Comma funArgs 
+       | type ID
+       | /* epsilon */;
 
-fun_body: var_decl fun_body 
-        | flow fun_body
-        | expr Semicolon fun_body
-        | /* epsilon */; 
+funBody: varDecl funBody 
+       | flow funBody
+       | expr Semicolon funBody
+       | /* epsilon */; 
 
 flow: cond 
     | loop
     | CONTINUE Semicolon
     | RETURN expr Semicolon;
 
-loop: WHILE OpenPar expr ClosePar OpenCurly fun_body CloseCurly;
+loop: WHILE OpenPar expr ClosePar OpenCurly funBody CloseCurly;
 
-cond: if_cond 
-    | if_cond elif_conds 
-    | if_cond elif_conds else_cond;
+cond: ifCond 
+    | ifCond elifConds 
+    | ifCond elifConds elseCond;
              
-if_cond: IF OpenPar expr ClosePar OpenCurly fun_body CloseCurly;
+ifCond: IF OpenPar expr ClosePar OpenCurly funBody CloseCurly;
 
-elif_conds: ELIF OpenPar expr ClosePar OpenCurly fun_body CloseCurly 
-          | /* epsilon */;
+elifConds: ELIF OpenPar expr ClosePar OpenCurly funBody CloseCurly 
+         | /* epsilon */;
 
-else_cond: ELSE OpenCurly fun_body CloseCurly;
+elseCond: ELSE OpenCurly funBody CloseCurly;
 
 expr: INT
     | STRING
-    | bool;
+    | bool_;
 
-bool: TRUE | FALSE;
+bool_: TRUE | FALSE;
 
 type: 'int';
 
@@ -69,6 +69,8 @@ ID: LETTER (LETTER | '0'..'9')*;
 fragment LETTER : [a-zA-Z];
 
 STRING: '"' .*? '"';
+
+WS: [ \t\r\n]+ -> channel(HIDDEN);
 
 Colon:         ':';
 Semicolon:     ';';

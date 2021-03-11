@@ -25,8 +25,7 @@ set(ANTLR_EXECUTABLE ${PROJECT_SOURCE_DIR}/extern/antlr/antlr-4.9.1-complete.jar
 find_package(ANTLR REQUIRED)
 
 # Call macro to add lexer and grammar to your build dependencies.
-antlr_target(Foc Foc.g4 
-             PACKAGE antlrcpptest)
+antlr_target(Foc Foc.g4 VISITOR PACKAGE foc)
 
 # include generated files in project environment
 message(INFO ${ANTLR_Foc_OUTPUT_DIR})
@@ -34,5 +33,5 @@ message(INFO ${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${ANTLR_Foc_OUTPUT_DIR})
 
 # add generated grammar to demo binary target
-add_executable(demo main.cpp ${ANTLR_Foc_CXX_OUTPUTS})
+add_executable(demo main.cpp src/CodeVisitor.hpp src/CodeVisitor.cpp ${ANTLR_Foc_CXX_OUTPUTS})
 target_link_libraries(demo antlr4_static)
