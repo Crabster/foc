@@ -42,13 +42,13 @@ elseCond: ELSE OpenCurly funBody CloseCurly
 
 // Expression stuff
 
-expr: typeexpr
+expr: typeExpr
     | OpenPar expr ClosePar
     | ID
-    | expr OPERATOR expr
+    | expr Operator expr
     | Minus expr;
 
-typeexpr: INT
+typeExpr: INT
         | CHAR
         | bool_
         | pointerExpr
@@ -56,7 +56,7 @@ typeexpr: INT
         | tupleExpr
         | listExpr
         | getIth
-        | funcall;
+        | funCall;
 
 pointerExpr: Ampersand ID
         | Ampersand Dollar
@@ -67,20 +67,20 @@ optExpr: QuestionMark expr
         | ExclMark expr;
 
 tupleExpr: OpenSharp CloseSharp
-        | OpenSharp exprlist CloseSharp;
+        | OpenSharp exprList CloseSharp;
 
 listExpr: OpenCurly CloseCurly
-        | OpenCurly exprlist CloseCurly;
+        | OpenCurly exprList CloseCurly;
 
-exprlist: expr Comma exprlist
+exprList: expr Comma exprList
         | expr;
 
 getIth: expr OpenSquare expr CloseSquare;
 
-funcall: expr OpenPar ClosePar
+funCall: expr OpenPar ClosePar
     | expr OpenPar untypedArgs ClosePar;
 
-untypedArgs: ID Semicolon untypedArgs
+untypedArgs: ID Comma untypedArgs
     | ID;
 
 bool_: TRUE | FALSE;
@@ -90,21 +90,24 @@ bool_: TRUE | FALSE;
 type: 'int'
     | 'char'
     | 'bool'
-    | Ampersand type
-    /* pointer */
-    | QuestionMark type
-    /* optional */
-    | OpenSharp CloseSharp
-    /* 0-tuple */
-    | OpenSharp typelist CloseSharp
-    /* tuple */
-    | OpenCurly type CloseCurly
-    /* array */
-    | OpenPar type Arrow type ClosePar;
-    /* function type */
+    | Ampersand type                    /* pointer */
+    | QuestionMark type                 /* optional */
+    | OpenSharp CloseSharp              /* 0-tuple */
+    | OpenSharp typelist CloseSharp     /* tuple */
+    | OpenCurly type CloseCurly         /* array */
+    | OpenPar type Arrow type ClosePar; /* function type */
 
 typelist: type Comma typelist
     | type;
+
+
+Operator: '+'
+    | '-' | '*'
+    | '/' | '=='
+    | '!='| '&&'
+    | '||'| '<'
+    | '>' | '<='
+    | '>=';
 
 // Lexer rules
 
@@ -124,14 +127,10 @@ FALSE: 'false';
 INT: DIGIT+;
 fragment DIGIT: [0-9];
 
-CHAR: 'todo';
+CHAR: '\'' [\u0032-\u0126] '\'';
 
 ID: LETTER (LETTER | '0'..'9')*;
 fragment LETTER : [a-zA-Z];
-
-STRING: '"' .*? '"';
-
-OPERATOR: ('+'|'-'|'*'|'/'|'=='|'!='|'&&'|'||'|'<'|'>'|'<='|'>=');
 
 WS: [ \t\r\n]+ -> channel(HIDDEN);
 
