@@ -50,6 +50,7 @@ expr: typeExpr
 
 typeExpr: INT
         | CHAR
+        | STRING
         | bool_
         | pointerExpr
         | optExpr
@@ -90,24 +91,24 @@ bool_: TRUE | FALSE;
 type: 'int'
     | 'char'
     | 'bool'
-    | Ampersand type                    /* pointer */
-    | QuestionMark type                 /* optional */
-    | OpenSharp CloseSharp              /* 0-tuple */
-    | OpenSharp typelist CloseSharp     /* tuple */
-    | OpenCurly type CloseCurly         /* array */
-    | OpenPar type Arrow type ClosePar; /* function type */
+    | Ampersand type                        /* pointer */
+    | QuestionMark type                     /* optional */
+    | OpenSharp CloseSharp                  /* 0-tuple */
+    | OpenSharp typelist CloseSharp         /* tuple */
+    | OpenCurly type Comma INT CloseCurly   /* array */
+    | OpenPar type Arrow type ClosePar;     /* function type */
 
 typelist: type Comma typelist
     | type;
 
 
-Operator: '+'
-    | '-' | '*'
-    | '/' | '=='
-    | '!='| '&&'
-    | '||'| '<'
-    | '>' | '<='
-    | '>=';
+operator: Plus
+    | Minus     | Star
+    | Slash     | IsEqual
+    | NotEqual  | And
+    | Or        | Less
+    | Greater   | Leq
+    | Geq;
 
 // Lexer rules
 
@@ -128,6 +129,8 @@ INT: DIGIT+;
 fragment DIGIT: [0-9];
 
 CHAR: '\'' [\u0032-\u0126] '\'';
+
+STRING: '"' CHAR* '"';
 
 ID: LETTER (LETTER | '0'..'9')*;
 fragment LETTER : [a-zA-Z];
@@ -154,3 +157,12 @@ Ampersand:     '&';
 QuestionMark:  '?';
 ExclMark:      '!';
 Dollar:        '$';
+Slash:         '/';
+IsEqual:      '==';
+NotEqual:     '!=';
+And:          '&&';
+Or:           '||';
+Less:          '<';
+Greater:       '>';
+Leq:          '<=';
+Geq:          '>=';
