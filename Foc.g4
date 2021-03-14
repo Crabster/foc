@@ -12,7 +12,19 @@ comment: Slash Star CHAR* Star Slash;
 
 varDecl: type ID Semicolon
        | type ID Equal expr Semicolon
-       | 'auto' ID Equal expr Semicolon;
+       | '_' ID Equal expr Semicolon
+       | type OpenSquare CloseSquare Semicolon
+       | type OpenSquare CloseSquare Equal expr Semicolon
+       | '_' OpenSquare CloseSquare Equal expr Semicolon
+       | type OpenSquare listID CloseSquare Semicolon
+       | type OpenSquare listID CloseSquare Equal expr Semicolon
+       | '_' OpenSquare listID CloseSquare Equal expr Semicolon
+       | type OpenSharp CloseSharp Semicolon
+       | type OpenSharp CloseSharp Equal expr Semicolon
+       | '_' OpenSharp CloseSharp Equal expr Semicolon
+       | type OpenSharp listID CloseSharp Semicolon
+       | type OpenSharp listID CloseSharp Equal expr Semicolon
+       | '_' OpenSharp listID CloseSharp Equal expr Semicolon;
 
 funDecl: type ID OpenPar funArgs ClosePar OpenCurly funBody CloseCurly
         | type ID OpenPar ClosePar OpenCurly funBody CloseCurly;
@@ -21,8 +33,8 @@ funArgs: type ID Comma funArgs
        | type ID;
 
 funBody: varDecl funBody
-       | ID Equal expr Semicolon
        | flow funBody
+       | comment
        | /* epsilon */;
 
 flow: cond
@@ -58,7 +70,7 @@ typeExpr: INT
         | pointerExpr
         | optExpr
         | tupleExpr
-        | listExpr
+        | arrayExpr
         | getIth
         | funCall;
 
@@ -73,8 +85,8 @@ optExpr: QuestionMark expr
 tupleExpr: OpenSharp CloseSharp
         | OpenSharp exprList CloseSharp;
 
-listExpr: OpenCurly CloseCurly
-        | OpenCurly exprList CloseCurly;
+arrayExpr: OpenSquare CloseSquare
+        | OpenSquare exprList CloseSquare;
 
 exprList: expr Comma exprList
         | expr;
@@ -82,26 +94,26 @@ exprList: expr Comma exprList
 getIth: expr OpenSquare expr CloseSquare;
 
 funCall: expr OpenPar ClosePar
-    | expr OpenPar untypedArgs ClosePar;
+    | expr OpenPar listID ClosePar;
 
-untypedArgs: ID Comma untypedArgs
+listID: ID Comma listID
     | ID;
 
 bool_: TRUE | FALSE;
 
 // Type stuff
 
-type: 'int'
-    | 'char'
-    | 'bool'
+type: '#'                                   /* int */
+    | '@'                                   /* char */
+    | '~'                                   /* bool */
     | Star type                             /* pointer */
     | QuestionMark type                     /* optional */
     | OpenSharp CloseSharp                  /* 0-tuple */
-    | OpenSharp typelist CloseSharp         /* tuple */
-    | OpenCurly type Comma INT CloseCurly   /* array */
+    | OpenSharp typeList CloseSharp         /* tuple */
+    | OpenSquare type Comma INT CloseSquare /* array */
     | OpenPar type Arrow type ClosePar;     /* function type */
 
-typelist: type Comma typelist
+typeList: type Comma typeList
     | type;
 
 
@@ -125,8 +137,8 @@ RETURN: 'return';
 CONTINUE: 'continue';
 BREAK: 'break';
 
-TRUE: 'true';
-FALSE: 'false';
+TRUE: 'T';
+FALSE: 'F';
 
 INT: DIGIT+;
 fragment DIGIT: [0-9];
