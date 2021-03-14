@@ -5,7 +5,10 @@ grammar Foc;
 program: decls EOF;
 
 decls: funDecl decls
-     | /* epsilon */;
+    | comment decls
+    | /* epsilon */;
+
+comment: Slash Star CHAR* Star Slash;
 
 varDecl: type ID Semicolon
        | type ID Equal expr Semicolon
@@ -91,7 +94,7 @@ bool_: TRUE | FALSE;
 type: 'int'
     | 'char'
     | 'bool'
-    | Ampersand type                        /* pointer */
+    | Star type                             /* pointer */
     | QuestionMark type                     /* optional */
     | OpenSharp CloseSharp                  /* 0-tuple */
     | OpenSharp typelist CloseSharp         /* tuple */
