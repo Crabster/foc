@@ -54,11 +54,18 @@ elseCond: ELSE OpenCurly funBody CloseCurly
 
 // Expression stuff
 
-expr: typeExpr
-    | OpenPar expr ClosePar
-    | ID
-    | expr operator_ expr
-    | Minus expr;
+expr: expr_ operator_ expr
+    | expr_ expr exprApply
+    | expr_ exprApply
+    | expr_;
+
+expr_: typeExpr
+     | OpenPar expr ClosePar
+     | ID
+     | Minus expr;
+
+exprApply: getIth
+         | funCall;
 
 typeExpr: INT
         | CHAR
@@ -67,9 +74,7 @@ typeExpr: INT
         | pointerExpr
         | optExpr
         | tupleExpr
-        | arrayExpr
-        | getIth
-        | funCall;
+        | arrayExpr;
 
 pointerExpr: Ampersand ID
            | Ampersand Dollar
@@ -89,9 +94,9 @@ listExprs: listExpr
 listExpr: expr Comma listExpr
         | expr;
 
-getIth: expr OpenSquare expr CloseSquare;
+getIth: OpenSquare expr CloseSquare;
 
-funCall: expr OpenPar listIDs ClosePar;
+funCall: OpenPar listIDs ClosePar;
 
 listIDs: listID
        | /* epsilon */;
