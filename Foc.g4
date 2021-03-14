@@ -5,34 +5,31 @@ grammar Foc;
 program: decls EOF;
 
 decls: funDecl decls
-    | comment decls
-    | /* epsilon */;
+     | comment decls
+     | /* epsilon */;
 
 comment: Slash Star CHAR* Star Slash;
 
 varDecl: type ID Semicolon
        | type ID Equal expr Semicolon
-       | '_' ID Equal expr Semicolon
-       | type OpenSquare CloseSquare Semicolon
-       | type OpenSquare CloseSquare Equal expr Semicolon
-       | '_' OpenSquare CloseSquare Equal expr Semicolon
-       | type OpenSquare listID CloseSquare Semicolon
-       | type OpenSquare listID CloseSquare Equal expr Semicolon
-       | '_' OpenSquare listID CloseSquare Equal expr Semicolon
-       | type OpenSharp CloseSharp Semicolon
-       | type OpenSharp CloseSharp Equal expr Semicolon
-       | '_' OpenSharp CloseSharp Equal expr Semicolon
-       | type OpenSharp listID CloseSharp Semicolon
-       | type OpenSharp listID CloseSharp Equal expr Semicolon
-       | '_' OpenSharp listID CloseSharp Equal expr Semicolon;
+       | AUTO ID Equal expr Semicolon
+       | type OpenSquare listIDs CloseSquare Semicolon
+       | type OpenSquare listIDs CloseSquare Equal expr Semicolon
+       | AUTO OpenSquare listIDs CloseSquare Equal expr Semicolon
+       | type OpenSharp listIDs CloseSharp Semicolon
+       | type OpenSharp listIDs CloseSharp Equal expr Semicolon
+       | AUTO OpenSharp listIDs CloseSharp Equal expr Semicolon;
 
-funDecl: type ID OpenPar funArgs ClosePar OpenCurly funBody CloseCurly
-        | type ID OpenPar ClosePar OpenCurly funBody CloseCurly;
+funDecl: type ID OpenPar funArgs ClosePar OpenCurly funBody CloseCurly;
 
-funArgs: type ID Comma funArgs
-       | type ID;
+funArgs: funArg
+       | /* epsilon */;
+
+funArg: type ID Comma funArg
+      | type ID;
 
 funBody: varDecl funBody
+       | ID Equal expr Semicolon
        | flow funBody
        | comment
        | /* epsilon */;
@@ -50,7 +47,7 @@ cond: ifCond elifConds elseCond;
 ifCond: IF OpenPar expr ClosePar OpenCurly funBody CloseCurly;
 
 elifConds: ELIF OpenPar expr ClosePar OpenCurly funBody CloseCurly elifConds
-        | /* epsilon */;
+         | /* epsilon */;
 
 elseCond: ELSE OpenCurly funBody CloseCurly
         | /* epsilon */;
@@ -60,7 +57,7 @@ elseCond: ELSE OpenCurly funBody CloseCurly
 expr: typeExpr
     | OpenPar expr ClosePar
     | ID
-    | expr Operator expr
+    | expr operator_ expr
     | Minus expr;
 
 typeExpr: INT
@@ -75,37 +72,53 @@ typeExpr: INT
         | funCall;
 
 pointerExpr: Ampersand ID
-        | Ampersand Dollar
-        | Star expr;
+           | Ampersand Dollar
+           | Star expr;
 
 optExpr: QuestionMark expr
-        | QuestionMark Dollar
-        | ExclMark expr;
+       | QuestionMark Dollar
+       | ExclMark expr;
 
-tupleExpr: OpenSharp CloseSharp
-        | OpenSharp exprList CloseSharp;
+tupleExpr: OpenSharp listExprs CloseSharp;
 
-arrayExpr: OpenSquare CloseSquare
-        | OpenSquare exprList CloseSquare;
+arrayExpr: OpenSquare listExprs CloseSquare;
 
-exprList: expr Comma exprList
+listExprs: listExpr
+         | /* epsilon */;
+
+listExpr: expr Comma listExpr
         | expr;
 
 getIth: expr OpenSquare expr CloseSquare;
 
-funCall: expr OpenPar ClosePar
-    | expr OpenPar listID ClosePar;
+funCall: expr OpenPar listIDs ClosePar;
+
+listIDs: listID
+       | /* epsilon */;
 
 listID: ID Comma listID
-    | ID;
+      | ID;
+
+operator_: Plus
+         | Minus
+         | Star
+         | Slash
+         | IsEqual
+         | NotEqual
+         | And
+         | Or
+         | Less
+         | Greater
+         | Leq
+         | Geq;
 
 bool_: TRUE | FALSE;
 
 // Type stuff
 
-type: '#'                                   /* int */
-    | '@'                                   /* char */
-    | '~'                                   /* bool */
+type: INT_TYPE                              /* int */
+    | CHAR_TYPE                             /* char */
+    | BOOL_TYPE                             /* bool */
     | Star type                             /* pointer */
     | QuestionMark type                     /* optional */
     | OpenSharp CloseSharp                  /* 0-tuple */
@@ -114,22 +127,13 @@ type: '#'                                   /* int */
     | OpenPar type Arrow type ClosePar;     /* function type */
 
 typeList: type Comma typeList
-    | type;
-
-
-operator: Plus
-    | Minus     | Star
-    | Slash     | IsEqual
-    | NotEqual  | And
-    | Or        | Less
-    | Greater   | Leq
-    | Geq;
+        | type;
 
 // Lexer rules
 
 WHILE: 'while';
 
-IF: 'if';
+IF  : 'if';
 ELIF: 'elif';
 ELSE: 'else';
 
@@ -139,6 +143,11 @@ BREAK: 'break';
 
 TRUE: 'T';
 FALSE: 'F';
+
+INT_TYPE:  '#';
+CHAR_TYPE: '@';
+BOOL_TYPE: '~';
+AUTO:      '_';
 
 INT: DIGIT+;
 fragment DIGIT: [0-9];
@@ -151,6 +160,15 @@ ID: LETTER (LETTER | '0'..'9')*;
 fragment LETTER : [a-zA-Z];
 
 WS: [ \t\r\n]+ -> channel(HIDDEN);
+
+IsEqual:       '==';
+NotEqual:      '!=';
+And:           '&&';
+Or:            '||';
+Leq:           '<=';
+Geq:           '>=';
+Less:     OpenSharp;
+Greater: CloseSharp;
 
 Colon:         ':';
 Semicolon:     ';';
@@ -173,11 +191,3 @@ QuestionMark:  '?';
 ExclMark:      '!';
 Dollar:        '$';
 Slash:         '/';
-IsEqual:      '==';
-NotEqual:     '!=';
-And:          '&&';
-Or:           '||';
-Less:          '<';
-Greater:       '>';
-Leq:          '<=';
-Geq:          '>=';
