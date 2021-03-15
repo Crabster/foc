@@ -8,7 +8,7 @@ decls: funDecl decls
      | comment decls
      | /* epsilon */;
 
-comment: Slash Star CHAR* Star Slash;
+comment: COMMENT;
 
 varDecl: type ID Semicolon
        | type ID Equal expr Semicolon
@@ -29,9 +29,9 @@ funArg: type ID Comma funArg
       | type ID;
 
 funBody: varDecl funBody
-       | ID Equal expr Semicolon
+       | ID Equal expr Semicolon funBody
        | flow funBody
-       | comment
+       | comment funBody
        | /* epsilon */;
 
 flow: cond
@@ -112,10 +112,13 @@ operator_: Plus
          | NotEqual
          | And
          | Or
-         | Less
-         | Greater
+         | less
+         | greater
          | Leq
          | Geq;
+
+less:     OpenSharp;
+greater: CloseSharp;
 
 bool_: TRUE | FALSE;
 
@@ -136,6 +139,8 @@ typeList: type Comma typeList
 
 // Lexer rules
 
+COMMENT: Slash Star (UnescapedChar | ' ')* Star Slash;
+
 WHILE: 'while';
 
 IF  : 'if';
@@ -145,6 +150,9 @@ ELSE: 'else';
 RETURN: 'return';
 CONTINUE: 'continue';
 BREAK: 'break';
+
+ID: LETTER (LETTER | '0'..'9')*;
+fragment LETTER : [a-zA-Z];
 
 TRUE: 'T';
 FALSE: 'F';
@@ -157,34 +165,24 @@ AUTO:      '_';
 INT: DIGIT+;
 fragment DIGIT: [0-9];
 
-CHAR: '\'' [\u0032-\u0126] '\'';
-
-STRING: '"' CHAR* '"';
-
-ID: LETTER (LETTER | '0'..'9')*;
-fragment LETTER : [a-zA-Z];
-
-WS: [ \t\r\n]+ -> channel(HIDDEN);
-
 IsEqual:       '==';
 NotEqual:      '!=';
 And:           '&&';
 Or:            '||';
 Leq:           '<=';
 Geq:           '>=';
-Less:     OpenSharp;
-Greater: CloseSharp;
 
+OpenCurly:     '{';
+CloseCurly:    '}';
+OpenPar:       '(';
+ClosePar:      ')';
+
+Equal:         '=';
 Colon:         ':';
 Semicolon:     ';';
-Equal:         '=';
 Plus:          '+';
 Minus:         '-';
 Star:          '*';
-OpenPar:       '(';
-ClosePar:      ')';
-OpenCurly:     '{';
-CloseCurly:    '}';
 OpenSquare:    '[';
 CloseSquare:   ']';
 OpenSharp:     '<';
@@ -196,3 +194,11 @@ QuestionMark:  '?';
 ExclMark:      '!';
 Dollar:        '$';
 Slash:         '/';
+
+CHAR: '\'' UnescapedChar '\'';
+STRING: '"' UnescapedChar* '"';
+
+fragment UnescapedChar: [\u0032-\u0126];
+
+WS: [ \t\r\n]+ -> channel(HIDDEN);
+
