@@ -1,11 +1,11 @@
 grammar Foc;
 
-// Parser rules
+// Parser rules ***********************************************************************************
 
 program: decls EOF;
 
 decls: funDecl decls
-     | comment decls
+     | COMMENT decls
      | /* epsilon */;
 
 comment: COMMENT;
@@ -19,7 +19,7 @@ funArg: type ID Comma funArg
       | type ID;
 
 funBody: varDecl funBody
-       | assigment funBody
+       | assignment funBody
        | flow funBody
        | comment funBody
        | /* epsilon */;
@@ -40,9 +40,8 @@ listIDs: listID
 listID: ID Comma listID
       | ID;
 
-assigment: ID Equal expr Semicolon
-         | ID OpenSquare expr CloseSquare Equal expr Semicolon
-         | ID OpenSharp expr CloseSharp Equal expr Semicolon;
+assignment: assignExpr Equal expr Semicolon
+          | ID Equal expr Semicolon;
 
 flow: cond
     | loop
@@ -62,11 +61,11 @@ elifConds: ELIF OpenPar expr ClosePar OpenCurly funBody CloseCurly elifConds
 elseCond: ELSE OpenCurly funBody CloseCurly
         | /* epsilon */;
 
-// Expression stuff
+// Expression stuff *******************************************************************************
 
 expr: expr_ operator_ expr
-    | expr_ expr exprApply
-    | expr_ exprApply
+    | expr_ funCall
+    | assignExpr
     | expr_;
 
 expr_: typeExpr
@@ -74,21 +73,24 @@ expr_: typeExpr
      | ID
      | Minus expr;
 
-exprApply: getIth
-         | funCall;
+assignExpr: expr_ OpenSquare expr CloseSquare
+          | expr_ OpenSharp expr CloseSharp;
+
+funCall: OpenPar listExprs ClosePar; // funCall
+//       | OpenPar listExprs ClosePar;
 
 typeExpr: INT
         | CHAR
         | STRING
         | bool_
-        | pointerExpr
+        | ptrExpr
         | optExpr
         | tupleExpr
         | arrayExpr;
 
-pointerExpr: Ampersand ID
-           | Ampersand Dollar
-           | Star expr;
+ptrExpr: Ampersand expr
+       | Ampersand Dollar
+       | Star expr;
 
 optExpr: QuestionMark expr
        | QuestionMark Dollar
@@ -103,10 +105,6 @@ listExprs: listExpr
 
 listExpr: expr Comma listExpr
         | expr;
-
-getIth: OpenSquare expr CloseSquare;
-
-funCall: OpenPar listExprs ClosePar;
 
 operator_: Plus
          | Minus
@@ -126,7 +124,7 @@ greater: CloseSharp;
 
 bool_: TRUE | FALSE;
 
-// Type stuff
+// Type stuff *************************************************************************************
 
 type: INT_TYPE                              /* int */
     | CHAR_TYPE                             /* char */
@@ -141,7 +139,7 @@ type: INT_TYPE                              /* int */
 typeList: type Comma typeList
         | type;
 
-// Lexer rules
+// Lexer rules ************************************************************************************
 
 COMMENT: Slash Star (UnescapedChar | ' ')* Star Slash;
 
@@ -180,7 +178,6 @@ OpenCurly:     '{';
 CloseCurly:    '}';
 OpenPar:       '(';
 ClosePar:      ')';
-
 Equal:         '=';
 Colon:         ':';
 Semicolon:     ';';
@@ -201,8 +198,6 @@ Slash:         '/';
 
 CHAR: '\'' UnescapedChar '\'';
 STRING: '"' UnescapedChar* '"';
-
 fragment UnescapedChar: [\u0032-\u0126];
 
 WS: [ \t\r\n]+ -> channel(HIDDEN);
-
