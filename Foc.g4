@@ -10,16 +10,6 @@ decls: funDecl decls
 
 comment: COMMENT;
 
-varDecl: type ID Semicolon
-       | type ID Equal expr Semicolon
-       | AUTO ID Equal expr Semicolon
-       | type OpenSquare listIDs CloseSquare Semicolon
-       | type OpenSquare listIDs CloseSquare Equal expr Semicolon
-       | AUTO OpenSquare listIDs CloseSquare Equal expr Semicolon
-       | type OpenSharp listIDs CloseSharp Semicolon
-       | type OpenSharp listIDs CloseSharp Equal expr Semicolon
-       | AUTO OpenSharp listIDs CloseSharp Equal expr Semicolon;
-
 funDecl: type ID OpenPar funArgs ClosePar OpenCurly funBody CloseCurly;
 
 funArgs: funArg
@@ -34,9 +24,25 @@ funBody: varDecl funBody
        | comment funBody
        | /* epsilon */;
 
+varDecl: type ID Semicolon
+       | type ID Equal expr Semicolon
+       | AUTO ID Equal expr Semicolon
+       | type OpenSquare listIDs CloseSquare Semicolon
+       | type OpenSquare listIDs CloseSquare Equal expr Semicolon
+       | AUTO OpenSquare listIDs CloseSquare Equal expr Semicolon
+       | type OpenSharp listIDs CloseSharp Semicolon
+       | type OpenSharp listIDs CloseSharp Equal expr Semicolon
+       | AUTO OpenSharp listIDs CloseSharp Equal expr Semicolon;
+
+listIDs: listID
+       | /* epsilon */;
+
+listID: ID Comma listID
+      | ID;
+
 assigment: ID Equal expr Semicolon
-       | ID OpenSquare expr CloseSquare Equal expr Semicolon
-       | ID OpenSharp expr CloseSharp Equal expr Semicolon;
+         | ID OpenSquare expr CloseSquare Equal expr Semicolon
+         | ID OpenSharp expr CloseSharp Equal expr Semicolon;
 
 flow: cond
     | loop
@@ -100,13 +106,7 @@ listExpr: expr Comma listExpr
 
 getIth: OpenSquare expr CloseSquare;
 
-funCall: OpenPar listIDs ClosePar;
-
-listIDs: listID
-       | /* epsilon */;
-
-listID: ID Comma listID
-      | ID;
+funCall: OpenPar listExprs ClosePar;
 
 operator_: Plus
          | Minus
