@@ -29,10 +29,14 @@ funArg: type ID Comma funArg
       | type ID;
 
 funBody: varDecl funBody
-       | ID Equal expr Semicolon funBody
+       | assigment funBody
        | flow funBody
        | comment funBody
        | /* epsilon */;
+
+assigment: ID Equal expr Semicolon
+       | ID OpenSquare expr CloseSquare Equal expr Semicolon
+       | ID OpenSharp expr CloseSharp Equal expr Semicolon;
 
 flow: cond
     | loop

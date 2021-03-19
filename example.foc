@@ -8,3 +8,13 @@
     }
     return f(w);
 }
+
+[#,10] transform([#,10] input, (#->#) f) {
+    [#,10] result = [0,0,0,0,0,0,0,0,0,0];
+    # i = 0;
+    while (i < 10) {
+        result[i] = f(input[i]);
+        i = i + 1;
+    }
+    return result;
+}
