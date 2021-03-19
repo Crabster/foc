@@ -6,7 +6,7 @@ project(foc)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 # compiler must be 11 or 14
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 # required if linking to static library
 add_definitions(-DANTLR4CPP_STATIC)
@@ -33,5 +33,6 @@ message(INFO ${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${ANTLR_Foc_OUTPUT_DIR})
 
 # add generated grammar to demo binary target
-add_executable(demo main.cpp src/CodeVisitor.hpp src/CodeVisitor.cpp ${ANTLR_Foc_CXX_OUTPUTS})
+file(GLOB sources src/*)
+add_executable(demo main.cpp ${sources} ${ANTLR_Foc_CXX_OUTPUTS})
 target_link_libraries(demo antlr4_static)
