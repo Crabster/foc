@@ -3,7 +3,10 @@
 #include <vector>
 #include <optional>
 #include <memory>
-
+#include <string>
+#include <stdexcept>
+#include <functional>
+#include <iostream>
 
 namespace foc {
 
@@ -20,10 +23,22 @@ struct Type {
     std::shared_ptr<std::vector<Type>> tuple_type;
     std::shared_ptr<std::pair<Type, int>> array_type;
     std::shared_ptr<std::pair<Type, Type>> fun_type;
+
+    bool operator==(const Type& other) const;
+    bool operator!=(const Type& other) const;
+
+    bool is_full_type() const;
+
+    std::string to_string() const {
+        return "TODO";
+    }
 };
 
 struct ID {
     std::string name;
+
+    bool operator==(const ID& other) const;
+    bool operator!=(const ID& other) const;
 };
 
 struct Operation;
@@ -167,6 +182,17 @@ struct FunDecl {
 
 struct Program {
     std::vector<FunDecl> decls;
+};
+
+}
+
+namespace std {
+
+template<>
+struct hash<foc::ID> {
+    inline size_t operator()(const foc::ID& id) const {
+        return hash<std::string>{}(id.name);
+    }
 };
 
 }
