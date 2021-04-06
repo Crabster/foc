@@ -21,11 +21,6 @@ Type get_expr_type(const Expr& expr, std::shared_ptr<IDContext> context) {
     return result;
 }
 
-std::pair<Type, bool> get_unified_right(const Type& l_expr, const Expr& r_expr, std::shared_ptr<IDContext> context, std::shared_ptr<IDContext> missing_decls) {
-    // TODO
-    //return {r_expr, true};
-}
-
 bool add_vec_context(const std::optional<std::vector<ID>>& ids, const Type& curr_type, std::shared_ptr<IDContext> context) {
     if (!ids || ids->size() == 0) {
         if ((curr_type.array_type && curr_type.array_type->second == 0) ||
@@ -43,7 +38,7 @@ bool add_vec_context(const std::optional<std::vector<ID>>& ids, const Type& curr
     return context->add_contexts(*ids, curr_type);
 }
 
-bool type_check(const VarDecl& decl, std::shared_ptr<IDContext> context, std::shared_ptr<IDContext> missing_decls) {
+bool type_check(const VarDecl& decl, std::shared_ptr<IDContext> context) {
     if (!decl.expr) {
             if (!decl.type) {
                 throw std::logic_error("Error in parser, using `_ x;`");
@@ -52,31 +47,22 @@ bool type_check(const VarDecl& decl, std::shared_ptr<IDContext> context, std::sh
     }
     Type expr_type = get_expr_type(*decl.expr, context);
     if (!decl.type) {
-        if (!expr_type.is_full_type()) {
-            std::cerr << "AutoError: using `_` and not-declared function in the same time" << std::endl;
-            return false;
-        }
         return add_vec_context(decl.ids, expr_type, context);
     }
-    if (expr_type.is_full_type()) {
-        auto res = *decl.type == expr_type;
-        if (!res) {
-            std::cerr << "TypeError: expression does not match declared type." << std::endl;
-        }
-        return res;
+    auto res = *decl.type == expr_type;
+    if (!res) {
+        std::cerr << "TypeError: expression does not match declared type." << std::endl;
+        return false;
     }
-    auto [_rt, unified] = get_unified_right(*decl.type, *decl.expr, context, missing_decls);
-    if (unified) {
-        return add_vec_context(decl.ids, *decl.type, context);
-    }
-    return false;
+
+    return add_vec_context(decl.ids, *decl.type, context);
 }
 
-bool type_check(const FunBody& body, std::shared_ptr<IDContext> context, std::shared_ptr<IDContext> missing_decls) {
+bool type_check(const FunBody& body, std::shared_ptr<IDContext> context) {
     bool res = true;
     for (const auto& part : body.parts) {
         if (part.decl) {
-            res &= type_check(*part.decl, context, missing_decls);
+            res &= type_check(*part.decl, context);
         }
         if (part.assign) {
             //TODO
@@ -90,23 +76,25 @@ bool type_check(const FunBody& body, std::shared_ptr<IDContext> context, std::sh
     return false;
 }
 
-bool type_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_context, std::shared_ptr<IDContext> missing_decls) {
+bool type_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_context) {
     auto loc_context = std::make_shared<IDContext>();
     loc_context->parent_context = par_context;
     for (const auto& fun_arg : fun_decl.args) {
         loc_context->add_context(fun_arg.id, fun_arg.type);
     }
-    return type_check(fun_decl.body, loc_context, missing_decls);
+    return type_check(fun_decl.body, loc_context);
 }
 
 bool type_check(const Program& prog) {
     auto glob_context = std::make_shared<IDContext>();
-    auto missing_decls = std::make_shared<IDContext>();
     bool succ = true;
 
     for (const auto& fun_decl : prog.decls) {
         glob_context->add_context(fun_decl.id, create_fun_type(fun_decl));
-        succ &= type_check(fun_decl, glob_context, missing_decls);
+    }
+
+    for (const auto& fun_decl : prog.decls) {
+        succ &= type_check(fun_decl, glob_context);
     }
 
     return true;
