@@ -8,12 +8,12 @@ bool Type::operator==(const Type& other) const {
             *prim_type == *other.prim_type;
     }
     if (ptr_type) {
-        return other.ptr_type &&
-            *ptr_type == *other.ptr_type;
+        return other.ptr_type && (*ptr_type == *other.ptr_type
+            || ptr_type->empty() || other.ptr_type->empty());
     }
     if (opt_type) {
-        return other.opt_type &&
-            *opt_type == *other.opt_type;
+        return other.opt_type && (*opt_type == *other.opt_type
+            || opt_type->empty() || other.opt_type->empty());
     }
     if (tuple_type) {
         if (!other.tuple_type || tuple_type->size() != other.tuple_type->size()) {
@@ -45,7 +45,7 @@ bool Type::operator!=(const Type& other) const {
 }
 
 bool Type::is_full_type() const {
-    if (prim_type.has_value()) {
+    if (prim_type) {
         return true;
     }
     if (ptr_type) {
@@ -70,6 +70,28 @@ bool Type::is_full_type() const {
             fun_type->second.is_full_type();
     }
     return false;
+}
+
+bool Type::empty() const {
+    if (prim_type) {
+        return false;
+    }
+    if (ptr_type) {
+        return false;
+    }
+    if (opt_type) {
+        return false;
+    }
+    if (tuple_type) {
+        return false;
+    }
+    if (array_type) {
+        return false;
+    }
+    if (fun_type) {
+        return false;
+    }
+    return true;
 }
 
 bool ID::operator==(const ID& other) const {

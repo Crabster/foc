@@ -6,7 +6,6 @@
 #include <string>
 #include <stdexcept>
 #include <functional>
-#include <iostream>
 
 namespace foc {
 
@@ -28,6 +27,7 @@ struct Type {
     bool operator!=(const Type& other) const;
 
     bool is_full_type() const;
+    bool empty() const;
 
     std::string to_string() const {
         return "TODO";
