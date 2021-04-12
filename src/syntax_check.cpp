@@ -183,7 +183,8 @@ std::optional<Type> get_expr_type(const TypeExpr& expr, std::shared_ptr<IDContex
             }
             return *sub_res->ptr_type;
         }
-        throw std::logic_error("Bug in parser, empty ptrExpr");
+        res.ptr_type = std::make_shared<Type>();
+        return res;
     }
     if (expr.opt_expr) {
         if (expr.opt_expr->opt_expr) {
@@ -205,7 +206,7 @@ std::optional<Type> get_expr_type(const TypeExpr& expr, std::shared_ptr<IDContex
             }
             return *sub_res->opt_type;
         }
-        throw std::logic_error("Bug in parser, empty optExpr");
+        res.opt_type = std::make_shared<Type>();
     }
     if (expr.tuple_expr) {
         std::vector<Type> vres;
@@ -331,13 +332,13 @@ bool syntax_check(const Assign& ass, std::shared_ptr<IDContext> context) {
     return true;
 }
 
-bool syntax_check(const IfCond& ifflow, std::shared_ptr<IDContext> context, bool in_cycle) {
+bool syntax_check(const IfCond& if_cond, std::shared_ptr<IDContext> context, bool in_cycle) {
     bool res = true;
-    auto cond_type = get_expr_type(ifflow.expr, context);
+    auto cond_type = get_expr_type(if_cond.expr, context);
     res &= (cond_type.has_value() && *cond_type == make_bool());
     auto loc_context = std::make_shared<IDContext>();
     loc_context->parent_context = context;
-    res &= syntax_check(ifflow.body, loc_context, in_cycle);
+    res &= syntax_check(if_cond.body, loc_context, in_cycle);
     return res;
 }
 
@@ -441,7 +442,7 @@ bool syntax_check(const Program& prog) {
         succ &= syntax_check(fun_decl, glob_context);
     }
 
-    return true;
+    return succ;
 }
 
 

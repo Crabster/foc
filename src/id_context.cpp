@@ -44,7 +44,7 @@ bool IDContext::add_strict_context(const ID& id, const Type& type) {
 
 bool IDContext::add_contexts(const std::vector<ID>& ids, const Type& type) {
     if (!type.array_type && !type.tuple_type) {
-        std::cerr << "TieError: trying to use tie for non-array and non-tuple typle." << std::endl;
+        std::cerr << "TieError: trying to use tie for non-array and non-tuple type." << std::endl;
         return false;
     }
     if (type.array_type) {

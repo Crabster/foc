@@ -153,11 +153,11 @@ RETURN: 'return';
 CONTINUE: 'continue';
 BREAK: 'break';
 
-ID: LETTER (LETTER | '0'..'9')*;
-fragment LETTER : [a-zA-Z];
-
 TRUE: 'T';
 FALSE: 'F';
+
+ID: LETTER (LETTER | '0'..'9')*;
+fragment LETTER : [a-zA-Z];
 
 INT_TYPE:  '#';
 CHAR_TYPE: '@';
