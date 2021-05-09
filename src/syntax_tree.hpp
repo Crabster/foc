@@ -9,6 +9,21 @@
 
 namespace foc {
 
+enum Operator {
+    PLUS,
+    MINUS,
+    STAR,
+    SLASH,
+    IS_EQUAL,
+    NOT_EQUAL,
+    AND,
+    OR,
+    LESS,
+    GREATER,
+    LEQ,
+    GEQ,
+};
+
 struct Type {
     enum Primitive {
         INT,
@@ -43,15 +58,18 @@ struct ID {
 
 struct Operation;
 struct FunCall;
-struct AssignExpr;
 struct TypeExpr;
 
 struct Expr {
-    bool minus;
-    std::shared_ptr<Operation> operation;
-    std::shared_ptr<FunCall> fun_call;
-    std::shared_ptr<AssignExpr> assign_expr;
+    std::shared_ptr<Expr> primary_expr;
+    std::shared_ptr<Expr> secondary_expr;
+
+    std::optional<Operator> op;
+    std::shared_ptr<std::vector<Expr>> fun_args;
+    bool deref_array;
+    bool deref_tuple;
     std::shared_ptr<TypeExpr> type_expr;
+    bool minus;
     std::optional<ID> id;
 };
 
@@ -82,27 +100,6 @@ struct TypeExpr {
     std::optional<OptExpr> opt_expr;
     std::optional<TupleExpr> tuple_expr;
     std::optional<ArrayExpr> array_expr;
-};
-
-struct Operation {
-    enum Operator {
-        PLUS,
-        MINUS,
-        STAR,
-        SLASH,
-        IS_EQUAL,
-        NOT_EQUAL,
-        AND,
-        OR,
-        LESS,
-        GREATER,
-        LEQ,
-        GEQ,
-    };
-
-    Operator op;
-    Expr expr_left;
-    Expr expr_right;
 };
 
 struct FunCall {
@@ -136,7 +133,7 @@ struct VarDecl {
 };
 
 struct Assign {
-    AssignExpr assign_expr;
+    Expr assign_expr;
     Expr expr;
 };
 
