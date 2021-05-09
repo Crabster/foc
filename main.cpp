@@ -1,7 +1,6 @@
 #include <iostream>
 #include "FocLexer.h"
 #include "src/code_visitor.hpp"
-#include "src/syntax_check.hpp"
 
 int main() {
     std::ifstream stream;
@@ -13,10 +12,10 @@ int main() {
     foc::FocParser parser(&tokens);
     foc::FocParser::ProgramContext* tree = parser.program();
     foc::CodeVisitor visitor;
-    foc::Program program = visitor.visitProgram(tree);
-    if (syntax_check(program)) {
-        std::cout << "All OK" << std::endl;
-    } else {
-        std::cout << "Some problem" << std::endl;
-    }
+    foc::Program program = visitor.visitProgram(tree).as<foc::Program>();
+    //if (foc::syntax_check(program)) {
+    //    std::cout << "All OK" << std::endl;
+    //} else {
+    //    std::cout << "Some problem" << std::endl;
+    //}
 }
