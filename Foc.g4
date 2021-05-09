@@ -40,8 +40,7 @@ listIDs: listID
 listID: ID Comma listID
       | ID;
 
-assignment: assignExpr Equal expr Semicolon
-          | ID Equal expr Semicolon;
+assignment: expr Equal expr Semicolon;
 
 flow: cond
     | loop
@@ -63,21 +62,14 @@ elseCond: ELSE OpenCurly funBody CloseCurly
 
 // Expression stuff *******************************************************************************
 
-expr: expr_ operator_ expr
-    | expr_ funCall
-    | assignExpr
-    | expr_;
-
-expr_: typeExpr
-     | OpenPar expr ClosePar
-     | ID
-     | Minus expr;
-
-assignExpr: expr_ OpenSquare expr CloseSquare
-          | expr_ OpenSharp expr CloseSharp;
-
-funCall: OpenPar listExprs ClosePar; // funCall
-//       | OpenPar listExprs ClosePar;
+expr: expr operator_ expr
+    | expr OpenPar listExprs ClosePar
+    | expr OpenSquare expr CloseSquare
+    | expr OpenSharp expr CloseSharp
+    | typeExpr
+    | OpenPar expr ClosePar
+    | Minus expr
+    | ID;
 
 typeExpr: INT
         | CHAR

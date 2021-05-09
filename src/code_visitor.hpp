@@ -27,7 +27,6 @@ public:
     antlrcpp::Any visitElseCond(FocParser::ElseCondContext *ctx);
 
     antlrcpp::Any visitExpr(FocParser::ExprContext *ctx);
-    antlrcpp::Any visitExpr_(FocParser::Expr_Context *ctx);
     antlrcpp::Any visitTypeExpr(FocParser::TypeExprContext *ctx);
     antlrcpp::Any visitPtrExpr(FocParser::PtrExprContext *ctx);
     antlrcpp::Any visitOptExpr(FocParser::OptExprContext *ctx);
@@ -35,12 +34,10 @@ public:
     antlrcpp::Any visitArrayExpr(FocParser::ArrayExprContext *ctx);
     antlrcpp::Any visitListExprs(FocParser::ListExprsContext *ctx);
     antlrcpp::Any visitListExpr(FocParser::ListExprContext *ctx);
-    antlrcpp::Any visitFunCall(FocParser::FunCallContext *ctx);
     antlrcpp::Any visitListIDs(FocParser::ListIDsContext *ctx);
     antlrcpp::Any visitListID(FocParser::ListIDContext *ctx);
     antlrcpp::Any visitOperator_(FocParser::Operator_Context *ctx);
     antlrcpp::Any visitBool_(FocParser::Bool_Context *ctx);
-    antlrcpp::Any visitAssignExpr(FocParser::AssignExprContext *ctx);
 
     antlrcpp::Any visitType(FocParser::TypeContext *ctx);
     antlrcpp::Any visitTypeList(FocParser::TypeListContext *ctx);
