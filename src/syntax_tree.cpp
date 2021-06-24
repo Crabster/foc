@@ -3,6 +3,8 @@
 namespace foc {
 
 bool Type::operator==(const Type& other) const {
+    return this->var == other.var;
+    /*
     if (prim_type.has_value()) {
         return other.prim_type.has_value() &&
             *prim_type == *other.prim_type;
@@ -38,6 +40,7 @@ bool Type::operator==(const Type& other) const {
     }
 
     throw std::logic_error("Empty type!");
+    */
 }
 
 bool Type::operator!=(const Type& other) const {
@@ -45,53 +48,37 @@ bool Type::operator!=(const Type& other) const {
 }
 
 bool Type::is_full_type() const {
-    if (prim_type) {
+    if (std::holds_alternative<Primitive>(var)) {
         return true;
     }
-    if (ptr_type) {
-        return ptr_type->is_full_type();
+    if (std::holds_alternative<Ptr>(var)) {
+        return std::get<Ptr>(var)->is_full_type();
     }
-    if (opt_type) {
-        return opt_type->is_full_type();
+    if (std::holds_alternative<Opt>(var)) {
+        return std::get<Opt>(var)->is_full_type();
     }
-    if (tuple_type) {
-        for (const auto& sub_type : *tuple_type) {
+    if (std::holds_alternative<Tuple>(var)) {
+        const Tuple& tuple_type = std::get<Tuple>(var);
+        for (const auto& sub_type : tuple_type) {
             if (!sub_type.is_full_type()) {
                 return false;
             }
         }
         return true;
     }
-    if (array_type) {
-        return array_type->first.is_full_type();
+    if (std::holds_alternative<Array>(var)) {
+        return std::get<Array>(var).first.is_full_type();
     }
-    if (fun_type) {
-        return fun_type->first.is_full_type() &&
-            fun_type->second.is_full_type();
+    if (std::holds_alternative<Fun>(var)) {
+        const Fun& fun_type = std::get<Fun>(var);
+        return fun_type.first.is_full_type() &&
+            fun_type.second.is_full_type();
     }
     return false;
 }
 
 bool Type::empty() const {
-    if (prim_type) {
-        return false;
-    }
-    if (ptr_type) {
-        return false;
-    }
-    if (opt_type) {
-        return false;
-    }
-    if (tuple_type) {
-        return false;
-    }
-    if (array_type) {
-        return false;
-    }
-    if (fun_type) {
-        return false;
-    }
-    return true;
+    return std::holds_alternative<std::monostate>(var);
 }
 
 bool ID::operator==(const ID& other) const {

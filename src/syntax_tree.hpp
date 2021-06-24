@@ -6,6 +6,9 @@
 #include <string>
 #include <stdexcept>
 #include <functional>
+#include <variant>
+
+#include "util.hpp"
 
 namespace foc {
 
@@ -24,31 +27,6 @@ enum Operator {
     GEQ,
 };
 
-struct Type {
-    enum Primitive {
-        INT,
-        CHAR,
-        BOOL,
-    };
-
-    std::optional<Primitive> prim_type;
-    std::shared_ptr<Type> ptr_type;
-    std::shared_ptr<Type> opt_type;
-    std::shared_ptr<std::vector<Type>> tuple_type;
-    std::shared_ptr<std::pair<Type, int>> array_type;
-    std::shared_ptr<std::pair<Type, Type>> fun_type;
-
-    bool operator==(const Type& other) const;
-    bool operator!=(const Type& other) const;
-
-    bool is_full_type() const;
-    bool empty() const;
-
-    std::string to_string() const {
-        return "TODO";
-    }
-};
-
 struct ID {
     std::string name;
 
@@ -56,8 +34,8 @@ struct ID {
     bool operator!=(const ID& other) const;
 };
 
-struct Operation;
-struct FunCall;
+struct Operation; // TODO: delete
+struct FunCall; // TODO: delete
 struct TypeExpr;
 
 struct Expr {
@@ -92,22 +70,15 @@ struct ArrayExpr {
 };
 
 struct TypeExpr {
-    std::optional<int> int_expr;
-    std::optional<char> char_expr;
-    std::optional<std::string> str_expr;
-    std::optional<bool> bool_expr;
-    std::optional<PtrExpr> ptr_expr;
-    std::optional<OptExpr> opt_expr;
-    std::optional<TupleExpr> tuple_expr;
-    std::optional<ArrayExpr> array_expr;
+    std::variant<int, char, std::string, bool, PtrExpr, OptExpr, TupleExpr, ArrayExpr> expr;
 };
 
-struct FunCall {
+struct FunCall { // TODO: delete
     Expr expr;
     std::vector<Expr> args;
 };
 
-struct AssignExpr {
+struct AssignExpr { // TODO: delete
     Expr expr;
     std::optional<Expr> idx_expr;
 };
@@ -124,6 +95,32 @@ struct FunBodyPart {
 
 struct FunBody {
     std::vector<FunBodyPart> parts;
+};
+
+struct Type {
+    enum Primitive {
+        INT,
+        CHAR,
+        BOOL,
+    };
+
+    using Opt   = std::optional<Type>;
+    using Ptr   = std::shared_ptr<Type>;
+    using Tuple = std::vector<Type>;
+    using Array = std::pair<Type, int>;
+    using Fun   = std::pair<Type, Type>;
+
+    std::dynamic_variant<std::monostate, Primitive, Ptr, Opt, Tuple, Array, Fun> var;
+
+    bool operator==(const Type& other) const;
+    bool operator!=(const Type& other) const;
+
+    bool is_full_type() const;
+    bool empty() const;
+
+    std::string to_string() const {
+        return "TODO";
+    }
 };
 
 struct VarDecl {
@@ -159,9 +156,7 @@ struct Flow {
         RETURN,
     };
 
-    std::optional<Cond> cond;
-    std::optional<Loop> loop;
-    std::optional<Control> control;
+    std::variant<Cond, Loop, Control> var;
 };
 
 

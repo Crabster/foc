@@ -95,15 +95,15 @@ antlrcpp::Any CodeVisitor::visitAssignment(FocParser::AssignmentContext *ctx) {
 antlrcpp::Any CodeVisitor::visitFlow(FocParser::FlowContext *ctx) {
     Flow flow;
     if (ctx->cond()) {
-        flow.cond = visitCond(ctx->cond()).as<Cond>();
+        flow.var = visitCond(ctx->cond()).as<Cond>();
     } else if (ctx->loop()) {
-        flow.loop = visitLoop(ctx->loop()).as<Loop>();
+        flow.var = visitLoop(ctx->loop()).as<Loop>();
     } else if (ctx->CONTINUE()) {
-        flow.control = Flow::Control::CONTINUE;
+        flow.var = Flow::Control::CONTINUE;
     } else if (ctx->BREAK()) {
-        flow.control = Flow::Control::BREAK;
+        flow.var = Flow::Control::BREAK;
     } else {
-        flow.control = Flow::Control::RETURN;
+        flow.var = Flow::Control::RETURN;
     }
     return std::make_shared<Flow>(flow);
 }
@@ -189,21 +189,21 @@ antlrcpp::Any CodeVisitor::visitExpr(FocParser::ExprContext *ctx) {
 antlrcpp::Any CodeVisitor::visitTypeExpr(FocParser::TypeExprContext *ctx) {
     TypeExpr expr;
     if (ctx->INT()) {
-        expr.int_expr = std::stoi(ctx->INT()->getText());
+        expr.expr = std::stoi(ctx->INT()->getText());
     } else if (ctx->CHAR()) {
-        expr.char_expr = ctx->CHAR()->getText()[0];
+        expr.expr = ctx->CHAR()->getText()[0];
     } else if (ctx->STRING()) {
-        expr.str_expr = ctx->STRING()->getText();
+        expr.expr = ctx->STRING()->getText();
     } else if (ctx->bool_()) {
-        expr.bool_expr = visitBool_(ctx->bool_()).as<bool>();
+        expr.expr = visitBool_(ctx->bool_()).as<bool>();
     } else if (ctx->ptrExpr()) {
-        expr.ptr_expr = visitPtrExpr(ctx->ptrExpr()).as<PtrExpr>();
+        expr.expr = visitPtrExpr(ctx->ptrExpr()).as<PtrExpr>();
     } else if (ctx->optExpr()) {
-        expr.opt_expr = visitOptExpr(ctx->optExpr()).as<OptExpr>();
+        expr.expr = visitOptExpr(ctx->optExpr()).as<OptExpr>();
     } else if (ctx->tupleExpr()) {
-        expr.tuple_expr = visitTupleExpr(ctx->tupleExpr()).as<TupleExpr>();
+        expr.expr = visitTupleExpr(ctx->tupleExpr()).as<TupleExpr>();
     } else {
-        expr.array_expr = visitArrayExpr(ctx->arrayExpr()).as<ArrayExpr>();
+        expr.expr = visitArrayExpr(ctx->arrayExpr()).as<ArrayExpr>();
     }
     return expr;
 }
@@ -300,29 +300,25 @@ antlrcpp::Any CodeVisitor::visitBool_(FocParser::Bool_Context *ctx) {
 antlrcpp::Any CodeVisitor::visitType(FocParser::TypeContext *ctx) {
     Type type;
     if (ctx->INT_TYPE()) {
-        type.prim_type = Type::Primitive::INT;
+        type.var = Type::Primitive::INT;
     } else if (ctx->CHAR_TYPE()) {
-        type.prim_type = Type::Primitive::CHAR;
+        type.var = Type::Primitive::CHAR;
     } else if (ctx->BOOL_TYPE()) {
-        type.prim_type = Type::Primitive::BOOL;
+        type.var = Type::Primitive::BOOL;
     } else if (ctx->Star()) {
-        type.ptr_type = std::make_shared<Type>(std::move(visitType(ctx->type()[0]).as<Type>()));
+        type.var = std::make_shared<Type>(std::move(visitType(ctx->type()[0]).as<Type>()));
     } else if (ctx->QuestionMark()) {
-        type.opt_type = std::make_shared<Type>(std::move(visitType(ctx->type()[0]).as<Type>()));
+        type.var = std::optional(std::move(visitType(ctx->type()[0]).as<Type>()));
     } else if (ctx->OpenSharp()) {
         if (ctx->typeList()) {
-            type.tuple_type = std::make_shared<std::vector<Type>>(visitTypeList(ctx->typeList()).as<std::vector<Type>>());
+            type.var = std::move(visitTypeList(ctx->typeList()).as<std::vector<Type>>());
         } else {
-            type.tuple_type = std::make_shared<std::vector<Type>>();
+            type.var = std::vector<Type>();
         }
     } else if (ctx->OpenSquare()) {
-        type.array_type = std::make_shared<std::pair<Type, int>>(
-            std::make_pair(visitType(ctx->type()[0]).as<Type>(), std::stoi(ctx->INT()->getText()))
-        );
+        type.var = std::make_pair(visitType(ctx->type()[0]).as<Type>(), std::stoi(ctx->INT()->getText()));
     } else {
-        type.fun_type = std::make_shared<std::pair<Type, Type>>(
-            std::make_pair(visitType(ctx->type()[0]).as<Type>(), visitType(ctx->type()[1]).as<Type>())
-        );
+        type.var = std::make_pair(visitType(ctx->type()[0]).as<Type>(), visitType(ctx->type()[1]).as<Type>());
     }
     return type;
 }
