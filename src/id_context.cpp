@@ -43,29 +43,32 @@ bool IDContext::add_strict_context(const ID& id, const Type& type) {
 }
 
 bool IDContext::add_contexts(const std::vector<ID>& ids, const Type& type) {
-    if (!type.array_type && !type.tuple_type) {
-        std::cerr << "TieError: trying to use tie for non-array and non-tuple type." << std::endl;
-        return false;
-    }
-    if (type.array_type) {
-        if (type.array_type->second != ids.size()) {
+    if (std::holds_alternative<Type::Array>(type.var)) {
+        const std::pair<Type, int>& array_type = std::get<Type::Array>(type.var);
+        if (array_type.second != ids.size()) {
             std::cerr << "TieError: try to use tie for wrong sized array" << std::endl;
             return false;
         }
+
         for (const auto& id : ids) {
-            add_context(id, type.array_type->first);
+            add_context(id, array_type.first);
         }
         return true;
-    }
-    // type.tuple_type
-    if (type.tuple_type->size() != ids.size()) {
-        std::cerr << "TieError: try to use tie for wrong sized tuple" << std::endl;
+    } else if (std::holds_alternative<Type::Tuple>(type.var)) {
+        const std::vector<Type>& tuple_type = std::get<Type::Tuple>(type.var);
+        if (tuple_type.size() != ids.size()) {
+            std::cerr << "TieError: try to use tie for wrong sized tuple" << std::endl;
+            return false;
+        }
+
+        for (unsigned i = 0; i < ids.size(); ++i) {
+            add_context(ids[i], tuple_type.at(i));
+        }
+        return true;
+    } else {
+        std::cerr << "TieError: trying to use tie for non-array and non-tuple type." << std::endl;
         return false;
     }
-    for (unsigned i = 0; i < ids.size(); ++i) {
-        add_context(ids[i], type.tuple_type->at(i));
-    }
-    return true;
 }
 
 }

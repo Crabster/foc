@@ -9,22 +9,24 @@ Type create_fun_type(const FunDecl& fun_decl) {
         vec_args_types.emplace_back(arg.type);
     }
     Type args_type;
-    args_type.tuple_type = std::make_shared<std::vector<Type>>(std::move(vec_args_types));
+    args_type.var = std::move(vec_args_types);
+    Type ret_type = fun_decl.ret_type;
 
     Type func_type;
-    func_type.fun_type = std::make_shared<std::pair<Type, Type>>(args_type, fun_decl.ret_type);
+    func_type.var = std::make_pair<Type, Type>(std::move(args_type), std::move(ret_type));
     return func_type;
 }
 
 std::optional<Type> make_bool() {
     auto res = std::make_optional<Type>();
-    res->prim_type = Type::Primitive::BOOL;
+    res->var = Type::Primitive::BOOL;
     return res;
 }
 
-std::optional<Type> get_expr_type(const Operation& expr, std::shared_ptr<IDContext> context) {
-    auto l_type = get_expr_type(expr.expr_left, context);
-    auto r_type = get_expr_type(expr.expr_right, context);
+std::optional<Type> get_operator_type(const Operator& op, const Expr& expr_left,
+        const Expr& expr_right, std::shared_ptr<IDContext> context) {
+    auto l_type = get_expr_type(expr_left, context);
+    auto r_type = get_expr_type(expr_right, context);
     if (!l_type || !r_type) {
         return {};
     }
@@ -32,31 +34,34 @@ std::optional<Type> get_expr_type(const Operation& expr, std::shared_ptr<IDConte
         std::cerr << "Types of left and right expression don't match" << std::endl;
         return {};
     }
-    switch (expr.op) {
-    case Operation::Operator::PLUS:
-    case Operation::Operator::MINUS:
-    case Operation::Operator::STAR:
-    case Operation::Operator::SLASH:
-        if (l_type->prim_type && *l_type->prim_type == Type::Primitive::INT) {
+    switch (op) {
+    case Operator::PLUS:
+    case Operator::MINUS:
+    case Operator::STAR:
+    case Operator::SLASH:
+        if (std::holds_alternative<Type::Primitive>(l_type->var)
+                && std::get<Type::Primitive>(l_type->var) == Type::Primitive::INT) {
             return l_type;
         }
         std::cerr << "TypeError: Using int operators on non-int types" << std::endl;
         return {};
-    case Operation::Operator::IS_EQUAL:
-    case Operation::Operator::NOT_EQUAL:
+    case Operator::IS_EQUAL:
+    case Operator::NOT_EQUAL:
         return make_bool();
-    case Operation::Operator::AND:
-    case Operation::Operator::OR:
-        if (l_type->prim_type && *l_type->prim_type == Type::Primitive::BOOL) {
+    case Operator::AND:
+    case Operator::OR:
+        if (std::holds_alternative<Type::Primitive>(l_type->var)
+                && std::get<Type::Primitive>(l_type->var) == Type::Primitive::BOOL) {
             return l_type;
         }
         std::cerr << "TypeError: Using logical operators on non-bool types" << std::endl;
         return {};
-    case Operation::Operator::LESS:
-    case Operation::Operator::GREATER:
-    case Operation::Operator::LEQ:
-    case Operation::Operator::GEQ:
-        if (l_type->prim_type && *l_type->prim_type == Type::Primitive::INT) {
+    case Operator::LESS:
+    case Operator::GREATER:
+    case Operator::LEQ:
+    case Operator::GEQ:
+        if (std::holds_alternative<Type::Primitive>(l_type->var)
+                && std::get<Type::Primitive>(l_type->var) == Type::Primitive::INT) {
             return make_bool();
         }
         std::cerr << "TypeError: Using int comparators on non-int types" << std::endl;
@@ -73,31 +78,36 @@ std::optional<Type> get_expr_type(const FunCall& expr, std::shared_ptr<IDContext
     if (!fun_type) {
         return {};
     }
-    if (!fun_type->fun_type) {
+    if (!std::holds_alternative<Type::Fun>(fun_type->var)) {
         std::cerr << "TypeError: Trying to use () on non-function type" << std::endl;
         return {};
     }
-    if (!fun_type->fun_type->first.tuple_type) {
+
+    const Type& fun_args_type = std::get<Type::Fun>(fun_type->var).first;
+    if (!std::holds_alternative<Type::Tuple>(fun_args_type.var)) {
         throw std::logic_error("Bug in parser, arguments should always be encapsed in tuple");
     }
-    const auto& fun_args_type = *fun_type->fun_type->first.tuple_type;
-    if (fun_args_type.size() != expr.args.size()) {
+
+    const std::vector<Type>& fun_args_types = std::get<Type::Tuple>(fun_args_type.var);
+    if (fun_args_types.size() != expr.args.size()) {
         std::cerr << "TypeError: Number of arguments doesn't match with function type" << std::endl;
         return {};
     }
-    for (unsigned i = 0; i < fun_args_type.size(); ++i) {
+    for (unsigned i = 0; i < fun_args_types.size(); ++i) {
         auto arg_type = get_expr_type(expr.args[i], context);
         if (!arg_type) {
             return {};
         }
-        if (fun_args_type[i] != *arg_type) {
+        if (fun_args_types[i] != *arg_type) {
             std::cerr << "TypeError: Type of argument " << i << " dosn't match the function type" << std::endl;
             return {};
         }
     }
-    return fun_type->fun_type->second;
+    const Type& fun_ret_type = std::get<Type::Fun>(fun_type->var).second;
+    return fun_ret_type;
 }
 
+/*
 std::optional<Type> get_expr_type(const AssignExpr& ass_expr, std::shared_ptr<IDContext> context) {
     auto l_type = get_expr_type(ass_expr.expr, context);
     if (!l_type) {
@@ -142,109 +152,127 @@ std::optional<Type> get_expr_type(const AssignExpr& ass_expr, std::shared_ptr<ID
     std::cerr << "TypeError: IDK MAN, ASS EXPR?!?!? Co tím krab myslel???" << std::endl;
     return {};
 }
+*/
+
+std::optional<Type> get_expr_type(const int& expr, std::shared_ptr<IDContext> context) {
+    Type res;
+    res.var = Type::Primitive::INT;
+    return res;
+}
+
+std::optional<Type> get_expr_type(const char& expr, std::shared_ptr<IDContext> context) {
+    Type res;
+    res.var = Type::Primitive::CHAR;
+    return res;
+}
+
+std::optional<Type> get_expr_type(const std::string& expr, std::shared_ptr<IDContext> context) {
+    Type res;
+    Type sub_res;
+    sub_res.var = Type::Primitive::CHAR;
+    res.var = std::make_pair<Type, int>(std::move(sub_res), expr.size());
+    return res;
+}
+
+std::optional<Type> get_expr_type(const bool& expr, std::shared_ptr<IDContext> context) {
+    Type res;
+    res.var = Type::Primitive::BOOL;
+    return res;
+}
+
+std::optional<Type> get_expr_type(const PtrExpr& expr, std::shared_ptr<IDContext> context) {
+    Type res;
+    if (expr.ref_expr) {
+        auto sub_res = get_expr_type(*expr.ref_expr, context);
+        if (!sub_res) {
+            return {};
+        }
+        res.var = std::make_shared<Type>(*sub_res);
+        return res;
+    } else if (expr.deref_expr) {
+        auto sub_res = get_expr_type(*expr.deref_expr, context);
+        if (!sub_res) {
+            return {};
+        }
+        if (!std::holds_alternative<Type::Ptr>(sub_res->var)) {
+            std::cerr << "TypeError: Dereferencing non-pointer type!" << std::endl;
+            return {};
+        }
+        return *std::get<Type::Ptr>(sub_res->var);
+    } else {
+        res.var = std::make_shared<Type>();
+        return res;
+    }
+}
+
+std::optional<Type> get_expr_type(const OptExpr& expr, std::shared_ptr<IDContext> context) {
+    Type res;
+    if (expr.opt_expr) {
+        auto sub_res = get_expr_type(*expr.opt_expr, context);
+        if (!sub_res) {
+            return {};
+        }
+        res.var = std::optional<Type>(*sub_res);
+        return res;
+    } else if (expr.nopt_expr) {
+        auto sub_res = get_expr_type(*expr.nopt_expr, context);
+        if (!sub_res) {
+            return {};
+        }
+        if (!std::holds_alternative<Type::Opt>(sub_res->var)) {
+            std::cerr << "TypeError: De-maybeing non-maybe type!" << std::endl;
+            return {};
+        }
+        return *std::get<Type::Opt>(sub_res->var);
+    } else {
+        res.var = std::optional<Type>();
+        return res;
+    }
+}
+
+std::optional<Type> get_expr_type(const TupleExpr& expr, std::shared_ptr<IDContext> context) {
+    Type res;
+    std::vector<Type> vres;
+    for (const auto& texpr : expr.exprs) {
+        auto sub_res = get_expr_type(texpr, context);
+        if (!sub_res) {
+            return {};
+        }
+        vres.emplace_back(*sub_res);
+    }
+    res.var = std::move(vres);
+    return res;
+}
+
+std::optional<Type> get_expr_type(const ArrayExpr& expr, std::shared_ptr<IDContext> context) {
+    Type res;
+    if (expr.exprs.size() == 0) {
+        std::cerr << "ArrayError: We do not allow arrays of size 0" << std::endl;
+        return {};
+    }
+    auto sub_type = get_expr_type(expr.exprs[0], context);
+    if (!sub_type) {
+        return {};
+    }
+    for (const auto& aexpr : expr.exprs) {
+        auto sub_res = get_expr_type(aexpr, context);
+        if (!sub_res) {
+            return {};
+        }
+        if (*sub_type != *sub_res) {
+            std::cerr << "TypeError: Types in array do not match" << std::endl;
+            return {};
+        }
+    }
+    res.var = std::make_pair<Type, int>(std::move(*sub_type), expr.exprs.size());
+    return res;
+}
 
 std::optional<Type> get_expr_type(const TypeExpr& expr, std::shared_ptr<IDContext> context) {
-    Type res;
-    if (expr.int_expr) {
-        res.prim_type = Type::Primitive::INT;
-        return res;
-    }
-    if (expr.char_expr) {
-        res.prim_type = Type::Primitive::CHAR;
-        return res;
-    }
-    if (expr.str_expr) {
-        Type sub_res;
-        sub_res.prim_type = Type::Primitive::CHAR;
-        res.array_type = std::make_shared<std::pair<Type, int>>(sub_res, expr.str_expr->size());
-        return res;
-    }
-    if (expr.bool_expr) {
-        res.prim_type = Type::Primitive::BOOL;
-        return res;
-    }
-    if (expr.ptr_expr) {
-        if (expr.ptr_expr->ref_expr) {
-            auto sub_res = get_expr_type(*expr.ptr_expr->ref_expr, context);
-            if (!sub_res) {
-                return {};
-            }
-            res.ptr_type = std::make_shared<Type>(*sub_res);
-            return res;
-        }
-        if (expr.ptr_expr->deref_expr) {
-            auto sub_res = get_expr_type(*expr.ptr_expr->deref_expr, context);
-            if (!sub_res) {
-                return {};
-            }
-            if (!sub_res->ptr_type) {
-                std::cerr << "TypeError: Dereferencing non-pointer type!" << std::endl;
-                return {};
-            }
-            return *sub_res->ptr_type;
-        }
-        res.ptr_type = std::make_shared<Type>();
-        return res;
-    }
-    if (expr.opt_expr) {
-        if (expr.opt_expr->opt_expr) {
-            auto sub_res = get_expr_type(*expr.opt_expr->opt_expr, context);
-            if (!sub_res) {
-                return {};
-            }
-            res.opt_type = std::make_shared<Type>(*sub_res);
-            return res;
-        }
-        if (expr.opt_expr->nopt_expr) {
-            auto sub_res = get_expr_type(*expr.opt_expr->nopt_expr, context);
-            if (!sub_res) {
-                return {};
-            }
-            if (!sub_res->opt_type) {
-                std::cerr << "TypeError: De-maybeing non-maybe type!" << std::endl;
-                return {};
-            }
-            return *sub_res->opt_type;
-        }
-        res.opt_type = std::make_shared<Type>();
-    }
-    if (expr.tuple_expr) {
-        std::vector<Type> vres;
-        for (const auto& texpr : expr.tuple_expr->exprs) {
-            auto sub_res = get_expr_type(texpr, context);
-            if (!sub_res) {
-                return {};
-            }
-            vres.emplace_back(*sub_res);
-        }
-        res.tuple_type = std::make_shared<std::vector<Type>>(std::move(vres));
-        return res;
-    }
-    if (expr.array_expr) {
-        if (expr.array_expr->exprs.size() == 0) {
-            std::cerr << "ArrayError: We do not allow arrays of size 0" << std::endl;
-            return {};
-        }
-        auto sub_type = get_expr_type(expr.array_expr->exprs[0], context);
-        if (!sub_type) {
-            return {};
-        }
-        for (const auto& aexpr : expr.array_expr->exprs) {
-            auto sub_res = get_expr_type(aexpr, context);
-            if (!sub_res) {
-                return {};
-            }
-            if (*sub_type != *sub_res) {
-                std::cerr << "TypeError: Types in array do not match" << std::endl;
-                return {};
-            }
-        }
-        res.array_type = std::make_shared<std::pair<Type, int>>(*sub_type, expr.array_expr->exprs.size());
-        return res;
-    }
-
-    throw std::logic_error("Bug in parser, empty typeExpr");
-    return {};
+    auto visit_cb = [&](const auto& arg){
+        return get_expr_type(arg, context);
+    };
+    return std::visit(visit_cb, expr.expr);
 }
 
 std::optional<Type> get_expr_type(const ID& expr, std::shared_ptr<IDContext> context) {
@@ -258,12 +286,8 @@ std::optional<Type> get_expr_type(const ID& expr, std::shared_ptr<IDContext> con
 
 std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> context) {
     std::optional<Type> result{};
-    if (expr.operation) {
-        result = get_expr_type(*expr.operation, context);
-    } else if (expr.fun_call) {
-        result = get_expr_type(*expr.fun_call, context);
-    } else if (expr.assign_expr) {
-        result = get_expr_type(*expr.assign_expr, context);
+    if (expr.op && expr.primary_expr && expr.secondary_expr) {
+        result = get_operator_type(*expr.op, *expr.primary_expr, *expr.secondary_expr, context);
     } else if (expr.type_expr) {
         result = get_expr_type(*expr.type_expr, context);
     } else if (expr.id) {
@@ -275,8 +299,9 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
         return result;
     }
     if (expr.minus) {
-        if (result->prim_type.has_value() && (*result->prim_type == Type::Primitive::INT
-            || *result->prim_type == Type::Primitive::BOOL)) {
+        if (std::holds_alternative<Type::Primitive>(result->var) &&
+                (std::get<Type::Primitive>(result->var) == Type::Primitive::INT ||
+                 std::get<Type::Primitive>(result->var) == Type::Primitive::BOOL)) {
             return result;
         }
         std::cerr << "TypeError: using 'minus' to non-INT non-BOOL expression" << std::endl;
@@ -287,9 +312,12 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
 
 bool add_vec_context(const std::optional<std::vector<ID>>& ids, const Type& curr_type, std::shared_ptr<IDContext> context) {
     if (!ids || ids->size() == 0) {
-        if ((curr_type.array_type && curr_type.array_type->second == 0) ||
-            (curr_type.tuple_type && curr_type.tuple_type->size() == 0)) {
-
+        if (std::holds_alternative<Type::Array>(curr_type.var)
+                && std::get<Type::Array>(curr_type.var).second == 0) {
+            return true;
+        }
+        if (std::holds_alternative<Type::Tuple>(curr_type.var)
+                && std::get<Type::Tuple>(curr_type.var).size() == 0) {
             return true;
         }
         std::cerr << "TypeError: empty ids in variable declaration" << std::endl;
@@ -389,17 +417,10 @@ bool syntax_check(const Flow::Control& ctrl, std::shared_ptr<IDContext> context,
 }
 
 bool syntax_check(const Flow& flow, std::shared_ptr<IDContext> context, bool in_cycle) {
-    if (flow.cond) {
-        return syntax_check(*flow.cond, context, in_cycle);
-    }
-    if (flow.loop) {
-        return syntax_check(*flow.loop, context, in_cycle);
-    }
-    if (flow.control) {
-        return syntax_check(*flow.control, context, in_cycle);
-    }
-    throw std::logic_error("Bug in parser, empty 'Flow'!");
-    return false;
+    auto visit_cb = [&](auto arg){
+        return syntax_check(arg, context, in_cycle);
+    };
+    return std::visit(visit_cb, flow.var);
 }
 
 bool syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, bool in_cycle) {
