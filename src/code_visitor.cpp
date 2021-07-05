@@ -55,19 +55,15 @@ antlrcpp::Any CodeVisitor::visitFunBody(FocParser::FunBodyContext *ctx) {
     }
     body = visitFunBody(ctx->funBody()).as<FunBody>();
 
+    FunBodyPart part;
     if (ctx->varDecl()) {
-        FunBodyPart part;
-        part.decl = visitVarDecl(ctx->varDecl()).as<std::shared_ptr<VarDecl>>();
-        body.parts.push_back(part);
+        part.var = std::move(visitVarDecl(ctx->varDecl()).as<VarDecl>());
     } else if (ctx->assignment()) {
-        FunBodyPart part;
-        part.assign = std::make_shared<Assign>(visitAssignment(ctx->assignment()).as<Assign>());
-        body.parts.push_back(part);
+        part.var = std::move(visitAssignment(ctx->assignment()).as<Assign>());
     } else if (ctx->flow()) {
-        FunBodyPart part;
-        part.flow = visitFlow(ctx->flow()).as<std::shared_ptr<Flow>>();
-        body.parts.push_back(part);
+        part.var = std::move(visitFlow(ctx->flow()).as<Flow>());
     }
+    body.parts.push_back(part);
     return body;
 }
 
@@ -82,7 +78,7 @@ antlrcpp::Any CodeVisitor::visitVarDecl(FocParser::VarDeclContext *ctx) {
     if (ctx->OpenSquare() || ctx->OpenSharp()) {
         decl.ids = visitListIDs(ctx->listIDs()).as<std::vector<ID>>();
     }
-    return std::make_shared<VarDecl>(decl);
+    return decl;
 }
 
 antlrcpp::Any CodeVisitor::visitAssignment(FocParser::AssignmentContext *ctx) {
@@ -99,13 +95,13 @@ antlrcpp::Any CodeVisitor::visitFlow(FocParser::FlowContext *ctx) {
     } else if (ctx->loop()) {
         flow.var = visitLoop(ctx->loop()).as<Loop>();
     } else if (ctx->CONTINUE()) {
-        flow.var = Flow::Control::CONTINUE;
+        flow.var = std::make_pair(Flow::ControlTypes::CONTINUE, std::nullopt);
     } else if (ctx->BREAK()) {
-        flow.var = Flow::Control::BREAK;
+        flow.var = std::make_pair(Flow::ControlTypes::BREAK, std::nullopt);
     } else {
-        flow.var = Flow::Control::RETURN;
+        flow.var = std::make_pair(Flow::ControlTypes::RETURN, visitExpr(ctx->expr()).as<Expr>());
     }
-    return std::make_shared<Flow>(flow);
+    return flow;
 }
 
 antlrcpp::Any CodeVisitor::visitLoop(FocParser::LoopContext *ctx) {
@@ -157,32 +153,45 @@ antlrcpp::Any CodeVisitor::visitElseCond(FocParser::ElseCondContext *ctx) {
 
 antlrcpp::Any CodeVisitor::visitExpr(FocParser::ExprContext *ctx) {
     Expr expr;
-    if (ctx->operator_()) {
-        expr.op = visitOperator_(ctx->operator_()).as<Operator>();
-    } else if (ctx->listExprs()) {
-        expr.fun_args = std::make_shared<std::vector<Expr>>(visitListExprs(ctx->listExprs()).as<std::vector<Expr>>());
-    } else if (ctx->OpenSquare()) {
-        expr.deref_array = true;
-    } else if (ctx->OpenSharp()) {
-        expr.deref_tuple = true;
-    } else if (ctx->typeExpr()) {
-        expr.type_expr = std::make_shared<TypeExpr>(visitTypeExpr(ctx->typeExpr()).as<TypeExpr>());
-        return expr;
-    } else if (ctx->Minus()) {
-        expr.minus = true;
-        return expr;
-    } else if (ctx->ID()) {
-        expr.id = { .name = ctx->ID()->getText() };
-        return expr;
-    } else {
-        return visitExpr(ctx->expr()[0]).as<Expr>();
+    std::shared_ptr<Expr> first_expr;
+    std::shared_ptr<Expr> second_expr;
+    if (ctx->expr().size() >= 1) {
+        first_expr = std::make_shared<Expr>(visitExpr(ctx->expr()[0]).as<Expr>());
     }
-
-    expr.primary_expr = std::make_shared<Expr>(visitExpr(ctx->expr()[0]).as<Expr>());
     if (ctx->expr().size() == 2) {
-        expr.secondary_expr = std::make_shared<Expr>(visitExpr(ctx->expr()[1]).as<Expr>());
+        second_expr = std::make_shared<Expr>(visitExpr(ctx->expr()[1]).as<Expr>());
     }
 
+    if (ctx->operator_()) {
+         expr.var = BinOperation{
+            .left_expr = first_expr,
+            .right_expr = second_expr,
+            .op = visitOperator_(ctx->operator_()).as<BinOperation::Operator>(),
+        };
+    } else if (ctx->listExprs()) {
+        expr.var = FunCall{
+            .fun = first_expr,
+            .fun_args = std::make_shared<std::vector<Expr>>(
+                    visitListExprs(ctx->listExprs()).as<std::vector<Expr>>()),
+        };
+    } else if (ctx->OpenSquare()) {
+        expr.var = DerefArray{
+            .array_expr = first_expr,
+            .deref_expr = second_expr,
+        };
+    } else if (ctx->OpenSharp()) {
+        expr.var = DerefTuple{
+            .tuple_expr = first_expr,
+            .deref_expr = second_expr,
+        };
+    } else if (ctx->typeExpr()) {
+        expr.var = std::move(visitTypeExpr(ctx->typeExpr()).as<TypeExpr>());
+    } else if (ctx->Minus()) {
+        expr = *first_expr;
+        expr.minus ^= true;
+    } else if (ctx->ID()) {
+        expr.var = ID{ .name = ctx->ID()->getText() };
+    }
     return expr;
 }
 
@@ -279,18 +288,18 @@ antlrcpp::Any CodeVisitor::visitListID(FocParser::ListIDContext *ctx) {
 }
 
 antlrcpp::Any CodeVisitor::visitOperator_(FocParser::Operator_Context *ctx) {
-    if (ctx->Plus())     return Operator::PLUS;
-    if (ctx->Minus())    return Operator::MINUS;
-    if (ctx->Star())     return Operator::STAR;
-    if (ctx->Slash())    return Operator::SLASH;
-    if (ctx->IsEqual())  return Operator::IS_EQUAL;
-    if (ctx->NotEqual()) return Operator::NOT_EQUAL;
-    if (ctx->And())      return Operator::AND;
-    if (ctx->Or())       return Operator::OR;
-    if (ctx->less())     return Operator::LESS;
-    if (ctx->greater())  return Operator::GREATER;
-    if (ctx->Leq())      return Operator::LEQ;
-    if (ctx->Geq())      return Operator::GEQ;
+    if (ctx->Plus())     return BinOperation::Operator::PLUS;
+    if (ctx->Minus())    return BinOperation::Operator::MINUS;
+    if (ctx->Star())     return BinOperation::Operator::STAR;
+    if (ctx->Slash())    return BinOperation::Operator::SLASH;
+    if (ctx->IsEqual())  return BinOperation::Operator::IS_EQUAL;
+    if (ctx->NotEqual()) return BinOperation::Operator::NOT_EQUAL;
+    if (ctx->And())      return BinOperation::Operator::AND;
+    if (ctx->Or())       return BinOperation::Operator::OR;
+    if (ctx->less())     return BinOperation::Operator::LESS;
+    if (ctx->greater())  return BinOperation::Operator::GREATER;
+    if (ctx->Leq())      return BinOperation::Operator::LEQ;
+    if (ctx->Geq())      return BinOperation::Operator::GEQ;
 }
 
 antlrcpp::Any CodeVisitor::visitBool_(FocParser::Bool_Context *ctx) {

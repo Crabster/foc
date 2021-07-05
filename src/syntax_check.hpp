@@ -15,9 +15,9 @@ bool syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, bool 
 bool syntax_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_context);
 bool syntax_check(const Program& prog);
 
-std::optional<Type> get_expr_type(const Operation& expr, std::shared_ptr<IDContext> context);
+//std::optional<Type> get_expr_type(const Operator& expr, std::shared_ptr<IDContext> context);
 std::optional<Type> get_expr_type(const FunCall& expr, std::shared_ptr<IDContext> context);
-std::optional<Type> get_expr_type(const AssignExpr& ass_expr, std::shared_ptr<IDContext> context);
+//std::optional<Type> get_expr_type(const AssignExpr& ass_expr, std::shared_ptr<IDContext> context);
 std::optional<Type> get_expr_type(const TypeExpr& expr, std::shared_ptr<IDContext> context);
 std::optional<Type> get_expr_type(const ID& expr, std::shared_ptr<IDContext> context);
 std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> context);

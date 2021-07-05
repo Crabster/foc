@@ -23,6 +23,7 @@ std::optional<Type> make_bool() {
     return res;
 }
 
+/*
 std::optional<Type> get_operator_type(const Operator& op, const Expr& expr_left,
         const Expr& expr_right, std::shared_ptr<IDContext> context) {
     auto l_type = get_expr_type(expr_left, context);
@@ -107,7 +108,6 @@ std::optional<Type> get_expr_type(const FunCall& expr, std::shared_ptr<IDContext
     return fun_ret_type;
 }
 
-/*
 std::optional<Type> get_expr_type(const AssignExpr& ass_expr, std::shared_ptr<IDContext> context) {
     auto l_type = get_expr_type(ass_expr.expr, context);
     if (!l_type) {
