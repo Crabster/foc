@@ -12,21 +12,6 @@
 
 namespace foc {
 
-enum Operator {
-    PLUS,
-    MINUS,
-    STAR,
-    SLASH,
-    IS_EQUAL,
-    NOT_EQUAL,
-    AND,
-    OR,
-    LESS,
-    GREATER,
-    LEQ,
-    GEQ,
-};
-
 struct ID {
     std::string name;
 
@@ -34,28 +19,50 @@ struct ID {
     bool operator!=(const ID& other) const;
 };
 
+struct Expr;
+
+struct BinOperation {
+    enum Operator {
+        PLUS,
+        MINUS,
+        STAR,
+        SLASH,
+        IS_EQUAL,
+        NOT_EQUAL,
+        AND,
+        OR,
+        LESS,
+        GREATER,
+        LEQ,
+        GEQ,
+    };
+
+    std::shared_ptr<Expr> left_expr;
+    std::shared_ptr<Expr> right_expr;
+    Operator op;
+};
+
+struct DerefArray {
+    std::shared_ptr<Expr> array_expr;
+    std::shared_ptr<Expr> deref_expr;
+};
+
+struct DerefTuple {
+    std::shared_ptr<Expr> tuple_expr;
+    std::shared_ptr<Expr> deref_expr;
+};
+
+struct FunCall {
+    std::shared_ptr<Expr> fun;
+    std::shared_ptr<std::vector<Expr>> fun_args;
+};
+
 struct TypeExpr;
 
 struct Expr {
-    std::shared_ptr<Expr> primary_expr;
-    std::shared_ptr<Expr> secondary_expr;
-
-    std::optional<Operator> op;
-    std::shared_ptr<std::vector<Expr>> fun_args;
-    bool deref_array;
-    bool deref_tuple;
-
-    std::shared_ptr<TypeExpr> type_expr;
+    std::dynamic_variant<BinOperation, DerefArray, DerefTuple, FunCall, ID, TypeExpr> var;
     bool minus;
-    std::optional<ID> id;
 };
-
-/*
-struct Expr {
-    variant<BinOperation, DerefArr, DerefTuple, FunCall, ID, TypeExpr>
-    bool minus;
-}
-*/
 
 struct PtrExpr {
     // &ref_expr
@@ -90,10 +97,7 @@ struct Assign;
 struct Flow;
 
 struct FunBodyPart {
-    // imo variant
-    std::shared_ptr<VarDecl> decl;
-    std::shared_ptr<Assign> assign;
-    std::shared_ptr<Flow> flow;
+    std::dynamic_variant<VarDecl, Assign, Flow> var;
 };
 
 struct FunBody {
@@ -157,15 +161,15 @@ struct Loop {
 };
 
 struct Flow {
-    // We need to remember what we are returning!
-    enum Control {
+    enum ControlTypes {
         CONTINUE,
         BREAK,
         RETURN,
     };
 
+    using Control = std::pair<ControlTypes, std::optional<Expr>>;
+
     std::variant<Cond, Loop, Control> var;
-    // Control -> std::pair<Control, std::opt<Expr>>
 };
 
 
