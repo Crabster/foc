@@ -23,150 +23,19 @@ std::optional<Type> make_bool() {
     return res;
 }
 
-/*
-std::optional<Type> get_operator_type(const Operator& op, const Expr& expr_left,
-        const Expr& expr_right, std::shared_ptr<IDContext> context) {
-    auto l_type = get_expr_type(expr_left, context);
-    auto r_type = get_expr_type(expr_right, context);
-    if (!l_type || !r_type) {
-        return {};
-    }
-    if (l_type != r_type) {
-        std::cerr << "Types of left and right expression don't match" << std::endl;
-        return {};
-    }
-    switch (op) {
-    case Operator::PLUS:
-    case Operator::MINUS:
-    case Operator::STAR:
-    case Operator::SLASH:
-        if (std::holds_alternative<Type::Primitive>(l_type->var)
-                && std::get<Type::Primitive>(l_type->var) == Type::Primitive::INT) {
-            return l_type;
-        }
-        std::cerr << "TypeError: Using int operators on non-int types" << std::endl;
-        return {};
-    case Operator::IS_EQUAL:
-    case Operator::NOT_EQUAL:
-        return make_bool();
-    case Operator::AND:
-    case Operator::OR:
-        if (std::holds_alternative<Type::Primitive>(l_type->var)
-                && std::get<Type::Primitive>(l_type->var) == Type::Primitive::BOOL) {
-            return l_type;
-        }
-        std::cerr << "TypeError: Using logical operators on non-bool types" << std::endl;
-        return {};
-    case Operator::LESS:
-    case Operator::GREATER:
-    case Operator::LEQ:
-    case Operator::GEQ:
-        if (std::holds_alternative<Type::Primitive>(l_type->var)
-                && std::get<Type::Primitive>(l_type->var) == Type::Primitive::INT) {
-            return make_bool();
-        }
-        std::cerr << "TypeError: Using int comparators on non-int types" << std::endl;
-        return {};
-    default:
-        throw std::logic_error("Bug in parser, unknown operand");
-        break;
-    }
-    return {};
-}
-
-std::optional<Type> get_expr_type(const FunCall& expr, std::shared_ptr<IDContext> context) {
-    auto fun_type = get_expr_type(expr.expr, context);
-    if (!fun_type) {
-        return {};
-    }
-    if (!std::holds_alternative<Type::Fun>(fun_type->var)) {
-        std::cerr << "TypeError: Trying to use () on non-function type" << std::endl;
-        return {};
-    }
-
-    const Type& fun_args_type = std::get<Type::Fun>(fun_type->var).first;
-    if (!std::holds_alternative<Type::Tuple>(fun_args_type.var)) {
-        throw std::logic_error("Bug in parser, arguments should always be encapsed in tuple");
-    }
-
-    const std::vector<Type>& fun_args_types = std::get<Type::Tuple>(fun_args_type.var);
-    if (fun_args_types.size() != expr.args.size()) {
-        std::cerr << "TypeError: Number of arguments doesn't match with function type" << std::endl;
-        return {};
-    }
-    for (unsigned i = 0; i < fun_args_types.size(); ++i) {
-        auto arg_type = get_expr_type(expr.args[i], context);
-        if (!arg_type) {
-            return {};
-        }
-        if (fun_args_types[i] != *arg_type) {
-            std::cerr << "TypeError: Type of argument " << i << " dosn't match the function type" << std::endl;
-            return {};
-        }
-    }
-    const Type& fun_ret_type = std::get<Type::Fun>(fun_type->var).second;
-    return fun_ret_type;
-}
-
-std::optional<Type> get_expr_type(const AssignExpr& ass_expr, std::shared_ptr<IDContext> context) {
-    auto l_type = get_expr_type(ass_expr.expr, context);
-    if (!l_type) {
-        return {};
-    }
-    if (!ass_expr.idx_expr) {
-        return l_type;
-    }
-    // stále nechápu tu sémantiku ass expr, taaaakže toto zkontrolovat
-    auto idx_type = get_expr_type(*ass_expr.idx_expr, context);
-    if (!idx_type) {
-        return {};
-    }
-    if (!idx_type->prim_type || *idx_type->prim_type != Type::Primitive::INT) {
-        std::cerr << "TypeError: Dereferencing with non-int type" << std::endl;
-        return {};
-    }
-    if (l_type->tuple_type) {
-        if (ass_expr.idx_expr->type_expr && ass_expr.idx_expr->type_expr->int_expr) {
-            const auto& tt = *l_type->tuple_type;
-            const auto& tid = *ass_expr.idx_expr->type_expr->int_expr;
-            if (tt.size() <= tid) {
-                std::cerr << "TupleError: Trying to access tuple element out of range" << std::endl;
-                return {};
-            }
-            return tt[tid];
-        }
-        std::cerr << "TupleError: It is possible to access tuple element only via constant" << std::endl;
-        return {};
-    }
-    if (l_type->array_type) {
-        const auto& tt = *l_type->array_type;
-        if (ass_expr.idx_expr->type_expr && ass_expr.idx_expr->type_expr->int_expr) {
-            const auto& tid = *ass_expr.idx_expr->type_expr->int_expr;
-            if (tt.second <= tid) {
-                std::cerr << "ArrayError: Accesing element of out bound with constant" << std::endl;
-                return {};
-            }
-        }
-        return tt.first;
-    }
-    std::cerr << "TypeError: IDK MAN, ASS EXPR?!?!? Co tím krab myslel???" << std::endl;
-    return {};
-}
-*/
-
-std::optional<Type> get_expr_type(const int& expr, std::shared_ptr<IDContext> context) {
+std::optional<Type> get_texpr_type(const int& expr, std::shared_ptr<IDContext> context) {
     Type res;
     res.var = Type::Primitive::INT;
     return res;
 }
 
-std::optional<Type> get_expr_type(const char& expr, std::shared_ptr<IDContext> context) {
+std::optional<Type> get_texpr_type(const char& expr, std::shared_ptr<IDContext> context) {
     Type res;
     res.var = Type::Primitive::CHAR;
     return res;
 }
 
-std::optional<Type> get_expr_type(const std::string& expr, std::shared_ptr<IDContext> context) {
+std::optional<Type> get_texpr_type(const std::string& expr, std::shared_ptr<IDContext> context) {
     Type res;
     Type sub_res;
     sub_res.var = Type::Primitive::CHAR;
@@ -174,13 +43,13 @@ std::optional<Type> get_expr_type(const std::string& expr, std::shared_ptr<IDCon
     return res;
 }
 
-std::optional<Type> get_expr_type(const bool& expr, std::shared_ptr<IDContext> context) {
+std::optional<Type> get_texpr_type(const bool& expr, std::shared_ptr<IDContext> context) {
     Type res;
     res.var = Type::Primitive::BOOL;
     return res;
 }
 
-std::optional<Type> get_expr_type(const PtrExpr& expr, std::shared_ptr<IDContext> context) {
+std::optional<Type> get_texpr_type(const PtrExpr& expr, std::shared_ptr<IDContext> context) {
     Type res;
     if (expr.ref_expr) {
         auto sub_res = get_expr_type(*expr.ref_expr, context);
@@ -205,7 +74,7 @@ std::optional<Type> get_expr_type(const PtrExpr& expr, std::shared_ptr<IDContext
     }
 }
 
-std::optional<Type> get_expr_type(const OptExpr& expr, std::shared_ptr<IDContext> context) {
+std::optional<Type> get_texpr_type(const OptExpr& expr, std::shared_ptr<IDContext> context) {
     Type res;
     if (expr.opt_expr) {
         auto sub_res = get_expr_type(*expr.opt_expr, context);
@@ -230,7 +99,7 @@ std::optional<Type> get_expr_type(const OptExpr& expr, std::shared_ptr<IDContext
     }
 }
 
-std::optional<Type> get_expr_type(const TupleExpr& expr, std::shared_ptr<IDContext> context) {
+std::optional<Type> get_texpr_type(const TupleExpr& expr, std::shared_ptr<IDContext> context) {
     Type res;
     std::vector<Type> vres;
     for (const auto& texpr : expr.exprs) {
@@ -244,7 +113,7 @@ std::optional<Type> get_expr_type(const TupleExpr& expr, std::shared_ptr<IDConte
     return res;
 }
 
-std::optional<Type> get_expr_type(const ArrayExpr& expr, std::shared_ptr<IDContext> context) {
+std::optional<Type> get_texpr_type(const ArrayExpr& expr, std::shared_ptr<IDContext> context) {
     Type res;
     if (expr.exprs.size() == 0) {
         std::cerr << "ArrayError: We do not allow arrays of size 0" << std::endl;
@@ -268,45 +137,250 @@ std::optional<Type> get_expr_type(const ArrayExpr& expr, std::shared_ptr<IDConte
     return res;
 }
 
-std::optional<Type> get_expr_type(const TypeExpr& expr, std::shared_ptr<IDContext> context) {
-    auto visit_cb = [&](const auto& arg){
-        return get_expr_type(arg, context);
-    };
-    return std::visit(visit_cb, expr.expr);
-}
-
-std::optional<Type> get_expr_type(const ID& expr, std::shared_ptr<IDContext> context) {
-    auto type = context->find_type(expr);
-    if (!type) {
-        std::cerr << "SomeError: identifier '" << expr.name << "' was not declared or is out of scope." << std::endl;
+std::optional<Type> get_op_type(const BinOperation::Operator& op, const Type& l_type, const Type& r_type) {
+    if (l_type != r_type) {
+        std::cerr << "Types of left and right expression don't match" << std::endl;
         return {};
     }
-    return type;
+    switch (op) {
+    case BinOperation::Operator::PLUS:
+    case BinOperation::Operator::MINUS:
+    case BinOperation::Operator::STAR:
+    case BinOperation::Operator::SLASH:
+        if (std::holds_alternative<Type::Primitive>(l_type.var)
+                && std::get<Type::Primitive>(l_type.var) == Type::Primitive::INT) {
+            return l_type;
+        }
+        std::cerr << "TypeError: Using int operators on non-int types" << std::endl;
+        return {};
+    case BinOperation::Operator::IS_EQUAL:
+    case BinOperation::Operator::NOT_EQUAL:
+        // Maybe forbid smthng like f = g? But we'll see
+        // when we will do assembler :shrug:
+        return make_bool();
+    case BinOperation::Operator::AND:
+    case BinOperation::Operator::OR:
+        if (std::holds_alternative<Type::Primitive>(l_type.var)
+                && std::get<Type::Primitive>(l_type.var) == Type::Primitive::BOOL) {
+            return l_type;
+        }
+        std::cerr << "TypeError: Using logical operators on non-bool types" << std::endl;
+        return {};
+    case BinOperation::Operator::LESS:
+    case BinOperation::Operator::GREATER:
+    case BinOperation::Operator::LEQ:
+    case BinOperation::Operator::GEQ:
+        if (std::holds_alternative<Type::Primitive>(l_type.var)
+                && std::get<Type::Primitive>(l_type.var) == Type::Primitive::INT) {
+            return make_bool();
+        }
+        std::cerr << "TypeError: Using int comparators on non-int types" << std::endl;
+        return {};
+    default:
+        throw std::logic_error("Bug in parser, unknown operand");
+        break;
+    }
+    return {};
+}
+
+std::optional<int> apply_op(BinOperation::Operator op, int l, int r) {
+    switch (op) {
+    case BinOperation::Operator::PLUS:
+        return { l+r };
+    case BinOperation::Operator::MINUS:
+        return { l-r };
+    case BinOperation::Operator::STAR:
+        return { l*r };
+    case BinOperation::Operator::SLASH:
+        if (r == 0) {
+            std::cerr << "Error: Div by 0" << std::endl;
+            return {};
+        }
+        return { l/r };
+    case BinOperation::Operator::IS_EQUAL:
+    case BinOperation::Operator::NOT_EQUAL:
+    case BinOperation::Operator::AND:
+    case BinOperation::Operator::OR:
+    case BinOperation::Operator::LESS:
+    case BinOperation::Operator::GREATER:
+    case BinOperation::Operator::LEQ:
+    case BinOperation::Operator::GEQ:
+        return {};
+    default:
+        throw std::logic_error("Bug in parser, unknown operand");
+        break;
+    }
+    return {};
+}
+
+std::optional<int> get_valid_index(const Expr& expr) {
+    int minus = expr.minus ? -1 : 1;
+    if (std::holds_alternative<BinOperation>(expr.var)) {
+        const auto& binop = std::get<BinOperation>(expr.var);
+        if (!binop.left_expr || !binop.right_expr) {
+            throw std::logic_error("Wtf empty binop?!?");
+        }
+        auto l_res = get_valid_index(*binop.left_expr);
+        auto r_res = get_valid_index(*binop.right_expr);
+        if (!l_res || !r_res) {
+            return {};
+        }
+        auto res = apply_op(binop.op, *l_res, *r_res);
+        if (!res) {
+            return {};
+        }
+        return { *res * minus };
+    } else if (std::holds_alternative<TypeExpr>(expr.var)) {
+        const auto& texpr = std::get<TypeExpr>(expr.var);
+        if (!std::holds_alternative<int>(texpr.expr)) {
+            return {};
+        }
+        return { std::get<int>(texpr.expr) * minus };
+    } else {
+        return {};
+    }
+}
+
+bool fun_args_matching(const Type::Fun& fun, const std::shared_ptr<std::vector<Expr>>& args, std::shared_ptr<IDContext> context) {
+    if (!std::holds_alternative<Type::Tuple>(fun.first.var)) {
+        throw std::logic_error("I fuuuucked up :kms:");
+    }
+    const auto& fun_args = std::get<Type::Tuple>(fun.first.var);
+    if (!args) {
+        if (fun_args.size() == 0) {
+            return true;
+        }
+        std::cerr << "Error: Function expects params (or compiler broke and gives empty sp" << std::endl;
+        return false;
+    }
+    const auto& real_args = *args;
+    if (fun_args.size() != real_args.size()) {
+        std::cerr << "Error: Non-mathcing number of params" << std::endl;
+        return false;
+    }
+    bool res = true;
+    for (unsigned i = 0; i < fun_args.size(); ++i) {
+        auto r_type = get_expr_type(real_args[i], context);
+        if (!r_type) {
+            res = false;
+            continue;
+        }
+        res &= fun_args[i] == *r_type;
+    }
+    return res;
 }
 
 std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> context) {
     std::optional<Type> result{};
-    if (expr.op && expr.primary_expr && expr.secondary_expr) {
-        result = get_operator_type(*expr.op, *expr.primary_expr, *expr.secondary_expr, context);
-    } else if (expr.type_expr) {
-        result = get_expr_type(*expr.type_expr, context);
-    } else if (expr.id) {
-        result = get_expr_type(*expr.id, context);
-    } else {
-        throw std::logic_error("Bug in parser, empty 'expr'");
-    }
-    if (!result) {
-        return result;
-    }
-    if (expr.minus) {
-        if (std::holds_alternative<Type::Primitive>(result->var) &&
-                (std::get<Type::Primitive>(result->var) == Type::Primitive::INT ||
-                 std::get<Type::Primitive>(result->var) == Type::Primitive::BOOL)) {
-            return result;
+
+    if (std::holds_alternative<BinOperation>(expr.var)) {
+        const auto& op_expr = std::get<BinOperation>(expr.var);
+        if (!op_expr.left_expr || !op_expr.right_expr) {
+            throw std::logic_error("Wtf man, empty binopexpr???");
         }
-        std::cerr << "TypeError: using 'minus' to non-INT non-BOOL expression" << std::endl;
-        return {};
+        auto ltype = get_expr_type(*op_expr.left_expr, context);
+        auto rtype = get_expr_type(*op_expr.right_expr, context);
+        if (!ltype || !rtype) {
+            return {};
+        }
+        result = get_op_type(op_expr.op, *ltype, *rtype);
+
+    } else if (std::holds_alternative<DerefArray>(expr.var)) {
+        const auto& arr_expr = std::get<DerefArray>(expr.var).array_expr;
+        const auto& deref_expr = std::get<DerefArray>(expr.var).deref_expr;
+        if (!arr_expr || !deref_expr) {
+            throw std::logic_error("Wtf man, empty derefArray???");
+        }
+        auto ltype = get_expr_type(*arr_expr, context);
+        auto rtype = get_expr_type(*deref_expr, context);
+        if (!ltype || !rtype) {
+            return {};
+        }
+        if (!std::holds_alternative<Type::Array>(ltype->var)) {
+            std::cerr << "TypeError: Trying to dereference non-array as array" << std::endl;
+            return {};
+        }
+        if (!std::holds_alternative<Type::Primitive>(rtype->var)
+                || std::get<Type::Primitive>(rtype->var) != Type::Primitive::INT) {
+            std::cerr << "TypeError: Trying to index with a non-int" << std::endl;
+            return {};
+        }
+        result = std::get<Type::Array>(ltype->var).first;
+
+    } else if (std::holds_alternative<DerefTuple>(expr.var)) {
+        const auto& tuple_expr = std::get<DerefTuple>(expr.var).tuple_expr;
+        const auto& deref_expr = std::get<DerefTuple>(expr.var).deref_expr;
+        if (!tuple_expr || deref_expr) {
+            throw std::logic_error("Wtf man, empty derefTuple???");
+        }
+        auto ltype = get_expr_type(*tuple_expr, context);
+        if (!ltype) {
+            return {};
+        }
+        if (!std::holds_alternative<Type::Tuple>(ltype->var)) {
+            std::cerr << "TypeError: Trying to dereference non-tuple as tuple" << std::endl;
+            return {};
+        }
+        auto opt_index = get_valid_index(*deref_expr);
+        if (!opt_index) {
+            std::cerr << "Error: Using tuple bad stupid non-compile-time index" << std::endl;
+            return {};
+        }
+        if (*opt_index < 0) {
+            std::cerr << "Error: Indexing tuple with negative index" << std::endl;
+            return {};
+        }
+        const auto& types = std::get<Type::Tuple>(ltype->var);
+        if (types.size() <= *opt_index) {
+            std::cerr << "Error: Indexing tuple out of range" << std::endl;
+        }
+        result = types[*opt_index];
+
+    } else if (std::holds_alternative<FunCall>(expr.var)) {
+        const auto& fun = std::get<FunCall>(expr.var).fun;
+        const auto& args = std::get<FunCall>(expr.var).fun_args;
+        if (!fun) {
+            throw std::logic_error("Wtf empty fun fun?!?");
+        }
+        auto f_type = get_expr_type(*fun, context);
+        if (!f_type) {
+            return {};
+        }
+        if (!std::holds_alternative<Type::Fun>(f_type->var)) {
+            std::cerr << "TypeError: Trying to invoke a non-fun expr" << std::endl;
+            return {};
+        }
+        if (!fun_args_matching(std::get<Type::Fun>(f_type->var), args, context)) {
+            return {};
+        }
+        result = std::get<Type::Fun>(f_type->var).second;
+
+    } else if (std::holds_alternative<ID>(expr.var)) {
+        if (!context->is_declared(std::get<ID>(expr.var))) {
+            std::cerr << "Error: Use of undeclared id" << std::endl;
+            return {};
+        }
+        result = context->find_type(std::get<ID>(expr.var));
+
+    } else if (std::holds_alternative<TypeExpr>(expr.var)) {
+        auto visit_cb = [&](const auto& arg) {
+            return get_texpr_type(arg, context);
+        };
+        result = std::visit(visit_cb, std::get<TypeExpr>(expr.var).expr);
+
+    } else {
+        throw std::logic_error("Idk man, empty expr?");
     }
+
+    if (expr.minus && result) {
+        if (!std::holds_alternative<Type::Primitive>(result->var)
+            || (std::get<Type::Primitive>(result->var) != Type::Primitive::INT
+                && std::get<Type::Primitive>(result->var) != Type::Primitive::BOOL)) {
+            std::cerr << "TypeError: using 'minus' to non-INT non-BOOL expression" << std::endl;
+            return {};
+        }
+    }
+
     return result;
 }
 
@@ -331,6 +405,7 @@ bool add_vec_context(const std::optional<std::vector<ID>>& ids, const Type& curr
 }
 
 bool syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context) {
+    // c
     if (!decl.expr) {
             if (!decl.type) {
                 throw std::logic_error("Error in parser, using `_ x;`");
@@ -354,61 +429,179 @@ bool syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context) {
     return add_vec_context(decl.ids, *decl.type, context);
 }
 
-bool syntax_check(const Assign& ass, std::shared_ptr<IDContext> context) {
-    // I want to change syntax, thus I skip
-    // assign -> only left values
+bool is_lvalue(const int& expr) {
+    std::cerr << "Error: Ass into int" << std::endl;
+    return false;
+}
+
+bool is_lvalue(const char& expr) {
+    std::cerr << "Error: Ass into char" << std::endl;
+    return false;
+}
+
+bool is_lvalue(const std::string& expr) {
+    std::cerr << "Error: Ass into string" << std::endl;
+    return false;
+}
+
+bool is_lvalue(const bool& expr) {
+    std::cerr << "Error: Ass into bool" << std::endl;
+    return false;
+}
+
+bool is_lvalue(const PtrExpr& expr) {
+    if (expr.ref_expr) {
+        return is_lvalue(*expr.ref_expr);
+    }
+    if (expr.deref_expr) {
+        return is_lvalue(*expr.deref_expr);
+    }
+    std::cerr << "Error: Assigning into &$" << std::endl;
+    return false;
+}
+
+bool is_lvalue(const OptExpr& expr) {
+    if (expr.opt_expr) {
+        return is_lvalue(*expr.opt_expr);
+    }
+    if (expr.nopt_expr) {
+        return is_lvalue(*expr.nopt_expr);
+    }
+    std::cerr << "Error: Assigning into ?$" << std::endl;
+    return false;
+}
+
+bool is_lvalue(const TupleExpr& expr) {
+    bool res = true;
+    for (const auto& texpr : expr.exprs) {
+        res &= is_lvalue(texpr);
+    }
+    return res;
+}
+
+bool is_lvalue(const ArrayExpr& expr) {
+    bool res = true;
+    for (const auto& aexpr : expr.exprs) {
+        res &= is_lvalue(aexpr);
+    }
+    return res;
+}
+
+bool is_lvalue(const Expr& expr) {
+    // We will limit ourselves to only few stuff, that can be on the left
+    if (std::holds_alternative<BinOperation>(expr.var)) {
+        std::cerr << "Error: trying to assign into bin-op" << std::endl;
+        return false;
+    } else if (std::holds_alternative<DerefArray>(expr.var)) {
+        const auto& arr_expr = std::get<DerefArray>(expr.var).array_expr;
+        if (!arr_expr) {
+            throw std::logic_error("Wtf man, empty derefArray???");
+        }
+        return is_lvalue(*arr_expr);
+    } else if (std::holds_alternative<DerefTuple>(expr.var)) {
+        const auto& tuple_expr = std::get<DerefTuple>(expr.var).tuple_expr;
+        if (!tuple_expr) {
+            throw std::logic_error("Wtf man, empty derefTuple???");
+        }
+        return is_lvalue(*tuple_expr);
+    } else if (std::holds_alternative<FunCall>(expr.var)) {
+        std::cerr << "Error: trying to ass into fun ret" << std::endl;
+        return false;
+    } else if (std::holds_alternative<ID>(expr.var)) {
+        return true;
+    } else if (std::holds_alternative<TypeExpr>(expr.var)) {
+        auto visit_cb = [&](const auto& arg) {
+            return is_lvalue(arg);
+        };
+        return std::visit(visit_cb, std::get<TypeExpr>(expr.var).expr);
+    } else {
+        throw std::logic_error("Idk man, empty expr?");
+    }
     return true;
 }
 
-bool syntax_check(const IfCond& if_cond, std::shared_ptr<IDContext> context, bool in_cycle) {
+bool syntax_check(const Assign& ass, std::shared_ptr<IDContext> context) {
+    // c
+    auto opt_ltype = get_expr_type(ass.assign_expr, context);
+    auto opt_rtype = get_expr_type(ass.expr, context);
+    if (!opt_ltype || !opt_rtype) {
+        std::cerr << "Error: Ass bad" << std::endl;
+        return false;
+    }
+    if (*opt_ltype != *opt_rtype) {
+        std::cerr << "Error: Ass do not match" << std::endl;
+        return false;
+    }
+    if (!is_lvalue(ass.assign_expr)) {
+        std::cerr << "Error: Stupid ass" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool syntax_check(const IfCond& if_cond, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
+    // c
     bool res = true;
     auto cond_type = get_expr_type(if_cond.expr, context);
     res &= (cond_type.has_value() && *cond_type == make_bool());
     auto loc_context = std::make_shared<IDContext>();
     loc_context->parent_context = context;
-    res &= syntax_check(if_cond.body, loc_context, in_cycle);
+    res &= syntax_check(if_cond.body, loc_context, in_cycle, ret_type);
     return res;
 }
 
-bool syntax_check(const Cond& cond, std::shared_ptr<IDContext> context, bool in_cycle) {
+bool syntax_check(const Cond& cond, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
+    // c
     bool res = true;
     for (const auto& ifcond : cond.if_conds) {
-        res &= syntax_check(ifcond, context, in_cycle);
+        res &= syntax_check(ifcond, context, in_cycle, ret_type);
     }
     if (cond.else_body) {
         auto loc_context = std::make_shared<IDContext>();
         loc_context->parent_context = context;
-        res &= syntax_check(*cond.else_body, loc_context, in_cycle);
+        res &= syntax_check(*cond.else_body, loc_context, in_cycle, ret_type);
     }
     return res;
 }
 
-bool syntax_check(const Loop& loop, std::shared_ptr<IDContext> context, bool in_cycle) {
+bool syntax_check(const Loop& loop, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
+    // c
     bool res = true;
     auto cond_type = get_expr_type(loop.expr, context);
     res &= (cond_type.has_value() && (*cond_type == make_bool()));
     auto loc_context = std::make_shared<IDContext>();
     loc_context->parent_context = context;
-    res &= syntax_check(loop.body, loc_context, true);
+    res &= syntax_check(loop.body, loc_context, true, ret_type);
     return res;
 }
 
-bool syntax_check(const Flow::Control& ctrl, std::shared_ptr<IDContext> context, bool in_cycle) {
-    // here should be added type_check of the return expr, meaning we should propagate
-    // the return type!
-    if (ctrl == Flow::Control::CONTINUE) {
+bool syntax_check(const Flow::Control& ctrl, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
+    // c
+    if (ctrl.first == Flow::ControlTypes::CONTINUE) {
         if (!in_cycle) {
-            std::cerr << "Using 'continue' outside loop" << std::endl;
+            std::cerr << "Warning: Using 'continue' outside loop" << std::endl;
         }
         return in_cycle;
     }
-    if (ctrl == Flow::Control::BREAK) {
+    if (ctrl.first == Flow::ControlTypes::BREAK) {
         if (!in_cycle) {
-            std::cerr << "Using 'break' outside loop" << std::endl;
+            std::cerr << "Warning: Using 'break' outside loop" << std::endl;
         }
         return in_cycle;
     }
-    if (ctrl == Flow::Control::RETURN) {
+    if (ctrl.first == Flow::ControlTypes::RETURN) {
+        if (!ctrl.second) {
+            if (ret_type.empty()) {
+                return true;
+            }
+            std::cerr << "Error: Returning empty expression from non-void function" << std::endl;
+            return false;
+        }
+        auto opt_type = get_expr_type(*ctrl.second, context);
+        if (!opt_type || *opt_type != ret_type) {
+            std::cerr << "Error: Type of returning expression does not match the return type of function" << std::endl;
+            return false;
+        }
         return true;
     }
 
@@ -416,42 +609,46 @@ bool syntax_check(const Flow::Control& ctrl, std::shared_ptr<IDContext> context,
     return false;
 }
 
-bool syntax_check(const Flow& flow, std::shared_ptr<IDContext> context, bool in_cycle) {
+bool syntax_check(const Flow& flow, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
+    // c
     auto visit_cb = [&](auto arg){
-        return syntax_check(arg, context, in_cycle);
+        return syntax_check(arg, context, in_cycle, ret_type);
     };
     return std::visit(visit_cb, flow.var);
 }
 
-bool syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, bool in_cycle) {
+bool syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
+    // c
     bool res = true;
     for (const auto& part : body.parts) {
-        if (part.decl) {
-            res &= syntax_check(*part.decl, context);
+        if (std::holds_alternative<VarDecl>(part.var)) {
+            res &= syntax_check(std::get<VarDecl>(part.var), context);
             continue;
-        }
-        if (part.assign) {
-            res &= syntax_check(*part.assign, context);
+        } else if (std::holds_alternative<Assign>(part.var)) {
+            res &= syntax_check(std::get<Assign>(part.var), context);
             continue;
-        }
-        if (part.flow) {
-            res &= syntax_check(*part.flow, context, in_cycle);
+        } else if (std::holds_alternative<Flow>(part.var)) {
+            res &= syntax_check(std::get<Flow>(part.var), context, in_cycle, ret_type);
             continue;
+        } else {
+            throw std::logic_error("Bug in parser, empty body");
         }
     }
     return res;
 }
 
 bool syntax_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_context) {
+    // c
     auto loc_context = std::make_shared<IDContext>();
     loc_context->parent_context = par_context;
     for (const auto& fun_arg : fun_decl.args) {
         loc_context->add_context(fun_arg.id, fun_arg.type);
     }
-    return syntax_check(fun_decl.body, loc_context, false);
+    return syntax_check(fun_decl.body, loc_context, false, fun_decl.ret_type);
 }
 
 bool syntax_check(const Program& prog) {
+    // c
     auto glob_context = std::make_shared<IDContext>();
     bool succ = true;
 
