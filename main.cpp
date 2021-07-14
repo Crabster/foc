@@ -14,6 +14,7 @@ int main() {
     foc::FocParser::ProgramContext* tree = parser.program();
     foc::CodeVisitor visitor;
     foc::Program program = visitor.visitProgram(tree).as<foc::Program>();
+    std::cout << program.to_string() << "\n----------------------\n" << std::endl;
     if (foc::syntax_check(program)) {
         std::cout << "All OK" << std::endl;
     } else {
