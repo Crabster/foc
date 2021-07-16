@@ -4,8 +4,8 @@ grammar Foc;
 
 program: decls EOF;
 
-decls: funDecl decls
-     | COMMENT decls
+decls: decls funDecl
+     | decls COMMENT
      | /* epsilon */;
 
 comment: COMMENT;
@@ -18,10 +18,10 @@ funArgs: funArg
 funArg: type ID Comma funArg
       | type ID;
 
-funBody: varDecl funBody
-       | assignment funBody
-       | flow funBody
-       | comment funBody
+funBody: funBody varDecl
+       | funBody assignment
+       | funBody flow
+       | funBody comment
        | /* epsilon */;
 
 varDecl: type ID Semicolon
@@ -54,7 +54,7 @@ cond: ifCond elifConds elseCond;
 
 ifCond: IF OpenPar expr ClosePar OpenCurly funBody CloseCurly;
 
-elifConds: ELIF OpenPar expr ClosePar OpenCurly funBody CloseCurly elifConds
+elifConds: elifConds ELIF OpenPar expr ClosePar OpenCurly funBody CloseCurly
          | /* epsilon */;
 
 elseCond: ELSE OpenCurly funBody CloseCurly
