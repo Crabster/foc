@@ -78,6 +78,9 @@ antlrcpp::Any CodeVisitor::visitVarDecl(FocParser::VarDeclContext *ctx) {
     if (ctx->OpenSquare() || ctx->OpenSharp()) {
         decl.ids = visitListIDs(ctx->listIDs()).as<std::vector<ID>>();
     }
+    if (ctx->ID()) {
+        decl.ids = std::vector<ID>{ ID{ .name = ctx->ID()->getText() } };
+    }
     return decl;
 }
 
@@ -117,7 +120,8 @@ antlrcpp::Any CodeVisitor::visitCond(FocParser::CondContext *ctx) {
 
     Cond cond;
     cond.if_conds.push_back(if_cond);
-    std::copy(cond.if_conds.begin(), cond.if_conds.end(), std::back_inserter(elif_conds));
+    std::copy(elif_conds.begin(), elif_conds.end(), std::back_inserter(cond.if_conds));
+    std::cout << cond.if_conds.size() << std::endl;
     cond.else_body = visitElseCond(ctx->elseCond()).as<std::optional<FunBody>>();
     return cond;
 }
@@ -132,13 +136,12 @@ antlrcpp::Any CodeVisitor::visitIfCond(FocParser::IfCondContext *ctx) {
 antlrcpp::Any CodeVisitor::visitElifConds(FocParser::ElifCondsContext *ctx) {
     std::vector<IfCond> elif_conds;
     if (ctx->expr()) {
+        elif_conds = visitElifConds(ctx->elifConds()).as<std::vector<IfCond>>();
+
         IfCond if_cond;
         if_cond.expr = visitExpr(ctx->expr()).as<Expr>();
         if_cond.body = visitFunBody(ctx->funBody()).as<FunBody>();
         elif_conds.push_back(if_cond);
-
-        std::vector<IfCond> conds = visitElifConds(ctx->elifConds()).as<std::vector<IfCond>>();
-        std::copy(elif_conds.begin(), elif_conds.end(), std::back_inserter(conds));
     }
     return elif_conds;
 }
