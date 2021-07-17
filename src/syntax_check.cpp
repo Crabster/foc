@@ -4,16 +4,14 @@
 namespace foc {
 
 Type create_fun_type(const FunDecl& fun_decl) {
-    std::vector<Type> vec_args_types;
+    std::vector<Type> args_types;
     for (const auto& arg : fun_decl.args) {
-        vec_args_types.emplace_back(arg.type);
+        args_types.emplace_back(arg.type);
     }
-    Type args_type;
-    args_type.var = std::move(vec_args_types);
     Type ret_type = fun_decl.ret_type;
 
     Type func_type;
-    func_type.var = std::make_pair<Type, Type>(std::move(args_type), std::move(ret_type));
+    func_type.var = std::make_pair<Type::Tuple, Type>(std::move(args_types), std::move(ret_type));
     return func_type;
 }
 
@@ -242,10 +240,7 @@ std::optional<int> get_valid_index(const Expr& expr) {
 }
 
 bool fun_args_matching(const Type::Fun& fun, const std::shared_ptr<std::vector<Expr>>& args, std::shared_ptr<IDContext> context) {
-    if (!std::holds_alternative<Type::Tuple>(fun.first.var)) {
-        throw std::logic_error("I fuuuucked up :kms:");
-    }
-    const auto& fun_args = std::get<Type::Tuple>(fun.first.var);
+    const auto& fun_args = fun.first;
     if (!args) {
         if (fun_args.size() == 0) {
             return true;
