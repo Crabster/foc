@@ -115,6 +115,7 @@ struct FunBody {
 
 struct Type {
     enum Primitive {
+        UNIT,
         INT,
         CHAR,
         BOOL,
@@ -124,7 +125,7 @@ struct Type {
     using Ptr   = std::shared_ptr<Type>;
     using Tuple = std::vector<Type>;
     using Array = std::pair<Type, int>;
-    using Fun   = std::pair<Type, Type>;
+    using Fun   = std::pair<Tuple, Type>;
 
     std::dynamic_variant<std::monostate, Primitive, Ptr, Opt, Tuple, Array, Fun> var;
 
