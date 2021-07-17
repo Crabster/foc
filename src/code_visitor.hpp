@@ -41,6 +41,7 @@ public:
 
     antlrcpp::Any visitType(FocParser::TypeContext *ctx);
     antlrcpp::Any visitTypeList(FocParser::TypeListContext *ctx);
+    antlrcpp::Any visitFunArgTypes(FocParser::FunArgTypesContext *ctx);
 };
 
 }

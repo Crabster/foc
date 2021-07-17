@@ -34,8 +34,12 @@ bool Type::is_full_type() const {
     }
     if (std::holds_alternative<Fun>(var)) {
         const Fun& fun_type = std::get<Fun>(var);
-        return fun_type.first.is_full_type() &&
-            fun_type.second.is_full_type();
+        for (const auto& sub_type : fun_type.first) {
+            if (!sub_type.is_full_type()) {
+                return false;
+            }
+        }
+        return fun_type.second.is_full_type();
     }
     return false;
 }
