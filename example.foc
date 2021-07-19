@@ -10,7 +10,7 @@
 
 [#,5] transform([#,10] input, (# -> #) g) {
     [#,5] result = [0,1,2,3,4];
-    # [a, b, c, d, e] = result;
+    [#,5] [a, b, c, d, e] = result;
     # i = 0;
     while (i < 10) {
         result[i] = g(input[i]);
@@ -20,7 +20,7 @@
         } elif (i == 1) {
             continue;
         } else {
-            return 0;
+            return [0, 0, 0, 0, 0];
         }
     }
     return result;
