@@ -8,7 +8,7 @@
     return f(w);
 }
 
-[#,5] transform([#,10] input, (# -> #) g) {
+[#,5] transform([#,10] input, (<#> -> #) g) {
     [#,5] result = [0,1,2,3,4];
     [#,5] [a, b, c, d, e] = result;
     # i = 0;
