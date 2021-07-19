@@ -43,21 +43,29 @@ struct BinOperation {
     std::shared_ptr<Expr> left_expr;
     std::shared_ptr<Expr> right_expr;
     Operator op;
+
+    std::string to_string() const;
 };
 
 struct DerefArray {
     std::shared_ptr<Expr> array_expr;
     std::shared_ptr<Expr> deref_expr;
+
+    std::string to_string() const;
 };
 
 struct DerefTuple {
     std::shared_ptr<Expr> tuple_expr;
     std::shared_ptr<Expr> deref_expr;
+
+    std::string to_string() const;
 };
 
 struct FunCall {
     std::shared_ptr<Expr> fun;
     std::shared_ptr<std::vector<Expr>> fun_args;
+
+    std::string to_string() const;
 };
 
 struct TypeExpr;
@@ -95,6 +103,8 @@ struct ArrayExpr {
 
 struct TypeExpr {
     std::variant<int, char, std::string, bool, PtrExpr, OptExpr, TupleExpr, ArrayExpr> expr;
+
+    std::string to_string() const;
 };
 
 struct VarDecl;
