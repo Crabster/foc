@@ -62,12 +62,13 @@ std::optional<Type> get_texpr_type(const PtrExpr& expr, std::shared_ptr<IDContex
             return {};
         }
         if (!std::holds_alternative<Type::Ptr>(sub_res->var)) {
-            std::cerr << "TypeError: Dereferencing non-pointer type!" << std::endl;
+            std::cerr << "TypeError: Dereferencing non-pointer type -- " << expr.to_string() << std::endl;
             return {};
         }
         return *std::get<Type::Ptr>(sub_res->var);
     } else {
-        res.var = std::make_shared<Type>();
+        Type sub_res;
+        res.var = std::make_shared<Type>(std::move(sub_res));
         return res;
     }
 }
@@ -87,12 +88,13 @@ std::optional<Type> get_texpr_type(const OptExpr& expr, std::shared_ptr<IDContex
             return {};
         }
         if (!std::holds_alternative<Type::Opt>(sub_res->var)) {
-            std::cerr << "TypeError: De-maybeing non-maybe type!" << std::endl;
+            std::cerr << "TypeError: De-maybeing non-maybe type -- " << expr.to_string() << std::endl;
             return {};
         }
         return *std::get<Type::Opt>(sub_res->var);
     } else {
-        res.var = std::optional<Type>();
+        Type sub_res;
+        res.var = std::optional<Type>(std::move(sub_res));
         return res;
     }
 }
@@ -114,7 +116,7 @@ std::optional<Type> get_texpr_type(const TupleExpr& expr, std::shared_ptr<IDCont
 std::optional<Type> get_texpr_type(const ArrayExpr& expr, std::shared_ptr<IDContext> context) {
     Type res;
     if (expr.exprs.size() == 0) {
-        std::cerr << "ArrayError: We do not allow arrays of size 0" << std::endl;
+        std::cerr << "ArrayError: We do not allow arrays of size 0 -- " << expr.to_string() << std::endl;
         return {};
     }
     auto sub_type = get_expr_type(expr.exprs[0], context);
@@ -126,8 +128,10 @@ std::optional<Type> get_texpr_type(const ArrayExpr& expr, std::shared_ptr<IDCont
         if (!sub_res) {
             return {};
         }
-        if (*sub_type != *sub_res) {
-            std::cerr << "TypeError: Types in array do not match" << std::endl;
+        if (!sub_type->is_equivalent(*sub_res)) {
+            std::cerr << "TypeError: Types in array do not match -- ";
+            std::cerr << sub_type->to_string() << sub_res->to_string();
+            std::cerr << "| in " << expr.to_string() << std::endl;
             return {};
         }
     }
@@ -136,8 +140,9 @@ std::optional<Type> get_texpr_type(const ArrayExpr& expr, std::shared_ptr<IDCont
 }
 
 std::optional<Type> get_op_type(const BinOperation::Operator& op, const Type& l_type, const Type& r_type) {
-    if (l_type != r_type) {
-        std::cerr << "Types of left and right expression don't match" << std::endl;
+    if (!l_type.is_equivalent(r_type)) {
+        std::cerr << "Types of left and right expression don't match -- ";
+        std::cerr << l_type.to_string() << " vs " << r_type.to_string() << std::endl;
         return {};
     }
     switch (op) {
@@ -245,7 +250,7 @@ bool fun_args_matching(const Type::Fun& fun, const std::shared_ptr<std::vector<E
         if (fun_args.size() == 0) {
             return true;
         }
-        std::cerr << "Error: Function expects params (or compiler broke and gives empty sp" << std::endl;
+        std::cerr << "Error: Function expects params (or compiler broke and gives empty sp)" << std::endl;
         return false;
     }
     const auto& real_args = *args;
@@ -260,7 +265,7 @@ bool fun_args_matching(const Type::Fun& fun, const std::shared_ptr<std::vector<E
             res = false;
             continue;
         }
-        res &= fun_args[i] == *r_type;
+        res &= fun_args[i].is_equivalent(*r_type);
     }
     return res;
 }
@@ -279,6 +284,9 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             return {};
         }
         result = get_op_type(op_expr.op, *ltype, *rtype);
+        if (!result) {
+            std::cerr << "| in " << expr.to_string() << std::endl;
+        }
 
     } else if (std::holds_alternative<DerefArray>(expr.var)) {
         const auto& arr_expr = std::get<DerefArray>(expr.var).array_expr;
@@ -292,12 +300,12 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             return {};
         }
         if (!std::holds_alternative<Type::Array>(ltype->var)) {
-            std::cerr << "TypeError: Trying to dereference non-array as array" << std::endl;
+            std::cerr << "TypeError: Trying to dereference non-array as array in " << expr.to_string() << std::endl;
             return {};
         }
         if (!std::holds_alternative<Type::Primitive>(rtype->var)
                 || std::get<Type::Primitive>(rtype->var) != Type::Primitive::INT) {
-            std::cerr << "TypeError: Trying to index with a non-int" << std::endl;
+            std::cerr << "TypeError: Trying to index with a non-int in " << expr.to_string() << std::endl;
             return {};
         }
         result = std::get<Type::Array>(ltype->var).first;
@@ -313,21 +321,22 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             return {};
         }
         if (!std::holds_alternative<Type::Tuple>(ltype->var)) {
-            std::cerr << "TypeError: Trying to dereference non-tuple as tuple" << std::endl;
+            std::cerr << "TypeError: Trying to dereference non-tuple as tuple in " << expr.to_string() << std::endl;
             return {};
         }
         auto opt_index = get_valid_index(*deref_expr);
         if (!opt_index) {
-            std::cerr << "Error: Using tuple bad stupid non-compile-time index" << std::endl;
+            std::cerr << "Error: Using tuple bad stupid non-compile-time index in " << expr.to_string() << std::endl;
             return {};
         }
         if (*opt_index < 0) {
-            std::cerr << "Error: Indexing tuple with negative index" << std::endl;
+            std::cerr << "Error: Indexing tuple with negative index in " << expr.to_string() << std::endl;
             return {};
         }
         const auto& types = std::get<Type::Tuple>(ltype->var);
         if (types.size() <= *opt_index) {
-            std::cerr << "Error: Indexing tuple out of range" << std::endl;
+            std::cerr << "Error: Indexing tuple out of range in " << expr.to_string() << std::endl;
+            return {};
         }
         result = types[*opt_index];
 
@@ -342,10 +351,11 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             return {};
         }
         if (!std::holds_alternative<Type::Fun>(f_type->var)) {
-            std::cerr << "TypeError: Trying to invoke a non-fun expr" << std::endl;
+            std::cerr << "TypeError: Trying to invoke a non-fun expr in " << expr.to_string() << std::endl;
             return {};
         }
         if (!fun_args_matching(std::get<Type::Fun>(f_type->var), args, context)) {
+            std::cerr << "| in " << expr.to_string() << std::endl;
             return {};
         }
         result = std::get<Type::Fun>(f_type->var).second;
@@ -353,6 +363,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
     } else if (std::holds_alternative<ID>(expr.var)) {
         if (!context->is_declared(std::get<ID>(expr.var))) {
             std::cerr << "Error: Use of undeclared id: " << std::get<ID>(expr.var).name << std::endl;
+            std::cerr << "| in " << expr.to_string() << std::endl;
             return {};
         }
         result = context->find_type(std::get<ID>(expr.var));
@@ -372,6 +383,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             || (std::get<Type::Primitive>(result->var) != Type::Primitive::INT
                 && std::get<Type::Primitive>(result->var) != Type::Primitive::BOOL)) {
             std::cerr << "TypeError: using 'minus' to non-INT non-BOOL expression" << std::endl;
+            std::cerr << "| in " << expr.to_string() << std::endl;
             return {};
         }
     }
@@ -414,9 +426,10 @@ bool syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context) {
     if (!decl.type) {
         return add_vec_context(decl.ids, expr_type, context);
     }
-    auto res = *decl.type == expr_type;
-    if (!res) {
-        std::cerr << "TypeError: expression does not match declared type." << std::endl;
+    if (!decl.type->is_equivalent(expr_type)) {
+        std::cerr << "TypeError: expression does not match declared type -- ";
+        std::cerr << decl.type->to_string() << " vs " << expr_type.to_string() << std::endl;
+        std::cerr << "| in " << decl.to_string() << std::endl;
         return false;
     }
 
@@ -519,14 +532,17 @@ bool syntax_check(const Assign& ass, std::shared_ptr<IDContext> context) {
     auto opt_rtype = get_expr_type(ass.expr, context);
     if (!opt_ltype || !opt_rtype) {
         std::cerr << "Error: Ass bad" << std::endl;
+        std::cerr << "| in " << ass.to_string() << std::endl;
         return false;
     }
-    if (*opt_ltype != *opt_rtype) {
+    if (!opt_ltype->is_equivalent(*opt_rtype)) {
         std::cerr << "Error: Ass do not match" << std::endl;
+        std::cerr << "| in " << ass.to_string() << std::endl;
         return false;
     }
     if (!is_lvalue(ass.assign_expr)) {
-        std::cerr << "Error: Stupid ass" << std::endl;
+        std::cerr << "Error: Stupid ass (not l-val)" << std::endl;
+        std::cerr << "| in " << ass.to_string() << std::endl;
         return false;
     }
     return true;
@@ -587,8 +603,9 @@ bool syntax_check(const Flow::Control& ctrl, std::shared_ptr<IDContext> context,
             return false;
         }
         auto opt_type = get_expr_type(*ctrl.second, context);
-        if (!opt_type || *opt_type != ret_type) {
+        if (!opt_type || !opt_type->is_equivalent(ret_type)) {
             std::cerr << "Error: Type of returning expression does not match the return type of function" << std::endl;
+            std::cerr << "| " << ctrl.second->to_string() << " vs " << ret_type.to_string() << std::endl;
             return false;
         }
         return true;
