@@ -352,7 +352,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
 
     } else if (std::holds_alternative<ID>(expr.var)) {
         if (!context->is_declared(std::get<ID>(expr.var))) {
-            std::cerr << "Error: Use of undeclared id" << std::endl;
+            std::cerr << "Error: Use of undeclared id: " << std::get<ID>(expr.var).name << std::endl;
             return {};
         }
         result = context->find_type(std::get<ID>(expr.var));
@@ -400,7 +400,6 @@ bool add_vec_context(const std::optional<std::vector<ID>>& ids, const Type& curr
 }
 
 bool syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context) {
-    // c
     if (!decl.expr) {
             if (!decl.type) {
                 throw std::logic_error("Error in parser, using `_ x;`");
@@ -516,7 +515,6 @@ bool is_lvalue(const Expr& expr) {
 }
 
 bool syntax_check(const Assign& ass, std::shared_ptr<IDContext> context) {
-    // c
     auto opt_ltype = get_expr_type(ass.assign_expr, context);
     auto opt_rtype = get_expr_type(ass.expr, context);
     if (!opt_ltype || !opt_rtype) {
@@ -535,24 +533,22 @@ bool syntax_check(const Assign& ass, std::shared_ptr<IDContext> context) {
 }
 
 bool syntax_check(const IfCond& if_cond, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    // c
     bool res = true;
     auto cond_type = get_expr_type(if_cond.expr, context);
     res &= (cond_type.has_value() && *cond_type == make_bool());
-    auto loc_context = std::make_shared<IDContext>();
+    auto loc_context = std::make_shared<IDContext>(true);
     loc_context->parent_context = context;
     res &= syntax_check(if_cond.body, loc_context, in_cycle, ret_type);
     return res;
 }
 
 bool syntax_check(const Cond& cond, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    // c
     bool res = true;
     for (const auto& ifcond : cond.if_conds) {
         res &= syntax_check(ifcond, context, in_cycle, ret_type);
     }
     if (cond.else_body) {
-        auto loc_context = std::make_shared<IDContext>();
+        auto loc_context = std::make_shared<IDContext>(true);
         loc_context->parent_context = context;
         res &= syntax_check(*cond.else_body, loc_context, in_cycle, ret_type);
     }
@@ -560,18 +556,16 @@ bool syntax_check(const Cond& cond, std::shared_ptr<IDContext> context, bool in_
 }
 
 bool syntax_check(const Loop& loop, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    // c
     bool res = true;
     auto cond_type = get_expr_type(loop.expr, context);
     res &= (cond_type.has_value() && (*cond_type == make_bool()));
-    auto loc_context = std::make_shared<IDContext>();
+    auto loc_context = std::make_shared<IDContext>(true);
     loc_context->parent_context = context;
     res &= syntax_check(loop.body, loc_context, true, ret_type);
     return res;
 }
 
 bool syntax_check(const Flow::Control& ctrl, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    // c
     if (ctrl.first == Flow::ControlTypes::CONTINUE) {
         if (!in_cycle) {
             std::cerr << "Warning: Using 'continue' outside loop" << std::endl;
@@ -605,7 +599,6 @@ bool syntax_check(const Flow::Control& ctrl, std::shared_ptr<IDContext> context,
 }
 
 bool syntax_check(const Flow& flow, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    // c
     auto visit_cb = [&](auto arg){
         return syntax_check(arg, context, in_cycle, ret_type);
     };
@@ -613,7 +606,6 @@ bool syntax_check(const Flow& flow, std::shared_ptr<IDContext> context, bool in_
 }
 
 bool syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    // c
     bool res = true;
     for (const auto& part : body.parts) {
         if (std::holds_alternative<VarDecl>(part.var)) {
@@ -633,8 +625,7 @@ bool syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, bool 
 }
 
 bool syntax_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_context) {
-    // c
-    auto loc_context = std::make_shared<IDContext>();
+    auto loc_context = std::make_shared<IDContext>(true);
     loc_context->parent_context = par_context;
     for (const auto& fun_arg : fun_decl.args) {
         loc_context->add_context(fun_arg.id, fun_arg.type);
@@ -643,8 +634,7 @@ bool syntax_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_contex
 }
 
 bool syntax_check(const Program& prog) {
-    // c
-    auto glob_context = std::make_shared<IDContext>();
+    auto glob_context = std::make_shared<IDContext>(true);
     bool succ = true;
 
     for (const auto& fun_decl : prog.decls) {

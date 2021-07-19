@@ -15,6 +15,7 @@ IDContext::~IDContext() {
     if (debug) {
         std::cout << "Destructing context with:\n";
         print_self();
+        std::cout << "-------------------------" << std::endl;
     }
 }
 
