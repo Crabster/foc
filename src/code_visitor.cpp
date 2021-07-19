@@ -26,19 +26,17 @@ antlrcpp::Any CodeVisitor::visitFunDecl(FocParser::FunDeclContext *ctx) {
     FunDecl decl;
     decl.ret_type = visitType(ctx->type()).as<Type>();
     decl.id = { .name = ctx->ID()->getText() };
-    decl.args = visitFunArgs(ctx->funArgs()).as<std::vector<FunArg>>();
+    if (ctx->funArgs()) {
+        decl.args = visitFunArgs(ctx->funArgs()).as<std::vector<FunArg>>();
+    }
     decl.body = visitFunBody(ctx->funBody()).as<FunBody>();
     return decl;
 }
 
 antlrcpp::Any CodeVisitor::visitFunArgs(FocParser::FunArgsContext *ctx) {
-    return visitFunArg(ctx->funArg());
-}
-
-antlrcpp::Any CodeVisitor::visitFunArg(FocParser::FunArgContext *ctx) {
     std::vector<FunArg> fun_args;
-    if (ctx->funArg()) {
-        fun_args = visitFunArg(ctx->funArg()).as<std::vector<FunArg>>();
+    if (ctx->funArgs()) {
+        fun_args = visitFunArgs(ctx->funArgs()).as<std::vector<FunArg>>();
     }
     FunArg fun_arg;
     fun_arg.type = visitType(ctx->type()).as<Type>();
@@ -62,6 +60,8 @@ antlrcpp::Any CodeVisitor::visitFunBody(FocParser::FunBodyContext *ctx) {
         part.var = std::move(visitAssignment(ctx->assignment()).as<Assign>());
     } else if (ctx->flow()) {
         part.var = std::move(visitFlow(ctx->flow()).as<Flow>());
+    } else if (ctx->expr()) {
+        part.var = std::move(visitExpr(ctx->expr()).as<Expr>());
     }
     body.parts.push_back(part);
     return body;
@@ -323,17 +323,20 @@ antlrcpp::Any CodeVisitor::visitType(FocParser::TypeContext *ctx) {
         type.var = std::make_shared<Type>(std::move(visitType(ctx->type()).as<Type>()));
     } else if (ctx->QuestionMark()) {
         type.var = std::optional(std::move(visitType(ctx->type()).as<Type>()));
+    } else if (ctx->Arrow()) {
+        Type::Tuple args_types;
+        if (ctx->typeList()) {
+            args_types = std::move(visitTypeList(ctx->typeList()).as<std::vector<Type>>());
+        }
+        type.var = std::make_pair(args_types, visitType(ctx->type()).as<Type>());
     } else if (ctx->OpenSharp()) {
         if (ctx->typeList()) {
             type.var = std::move(visitTypeList(ctx->typeList()).as<std::vector<Type>>());
         } else {
             type.var = std::vector<Type>();
         }
-    } else if (ctx->OpenSquare()) {
-        type.var = std::make_pair(visitType(ctx->type()).as<Type>(), std::stoi(ctx->INT()->getText()));
     } else {
-        std::vector<Type> args_types = visitFunArgTypes(ctx->funArgTypes()).as<std::vector<Type>>();
-        type.var = std::make_pair(args_types, visitType(ctx->type()).as<Type>());
+        type.var = std::make_pair(visitType(ctx->type()).as<Type>(), std::stoi(ctx->INT()->getText()));
     }
     return type;
 }
@@ -342,15 +345,6 @@ antlrcpp::Any CodeVisitor::visitTypeList(FocParser::TypeListContext *ctx) {
     std::vector<Type> types;
     if (ctx->typeList()) {
         types = visitTypeList(ctx->typeList()).as<std::vector<Type>>();
-    }
-    types.push_back(visitType(ctx->type()).as<Type>());
-    return types;
-}
-
-antlrcpp::Any CodeVisitor::visitFunArgTypes(FocParser::FunArgTypesContext *ctx) {
-    std::vector<Type> types;
-    if (ctx->funArgTypes()) {
-        types = visitFunArgTypes(ctx->funArgTypes()).as<std::vector<Type>>();
     }
     types.push_back(visitType(ctx->type()).as<Type>());
     return types;

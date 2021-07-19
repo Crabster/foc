@@ -15,7 +15,6 @@ public:
     antlrcpp::Any visitDecls(FocParser::DeclsContext *ctx);
     antlrcpp::Any visitFunDecl(FocParser::FunDeclContext *ctx);
     antlrcpp::Any visitFunArgs(FocParser::FunArgsContext *ctx);
-    antlrcpp::Any visitFunArg(FocParser::FunArgContext *ctx);
     antlrcpp::Any visitFunBody(FocParser::FunBodyContext *ctx);
     antlrcpp::Any visitVarDecl(FocParser::VarDeclContext *ctx);
     antlrcpp::Any visitAssignment(FocParser::AssignmentContext *ctx);
@@ -41,7 +40,6 @@ public:
 
     antlrcpp::Any visitType(FocParser::TypeContext *ctx);
     antlrcpp::Any visitTypeList(FocParser::TypeListContext *ctx);
-    antlrcpp::Any visitFunArgTypes(FocParser::FunArgTypesContext *ctx);
 };
 
 }

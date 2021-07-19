@@ -387,8 +387,9 @@ std::string Type::to_string() const {
         const auto& p = std::get<Array>(var);
         return "[" + p.first.to_string() + "," + std::to_string(p.second) + "]";
     } else if (std::holds_alternative<Fun>(var)) {
-        const auto& p = std::get<Fun>(var);
-        Type cheat = { .var = std::make_shared<Tuple>(p.first) };
+        auto p = std::get<Fun>(var);
+        Type cheat;
+        cheat.var = Type::Tuple(p.first);
         return "(" + cheat.to_string() + "->" + p.second.to_string() + ")";
     } else {
         throw std::logic_error("Type::to_string -- dyn_var out of range");
