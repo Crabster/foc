@@ -72,7 +72,171 @@ std::string ID::to_string() const {
 }
 
 std::string Expr::to_string() const {
+    std::string m = "";
+    if (minus) {
+        m = "-";
+    }
+    if (std::holds_alternative<std::monostate>(var)) {
+        return m + "MONO_EXPR";
+    } else if (std::holds_alternative<BinOperation>(var)) {
+        return m + std::get<BinOperation>(var).to_string();
+    } else if (std::holds_alternative<DerefArray>(var)) {
+        return m + std::get<DerefArray>(var).to_string();
+    } else if (std::holds_alternative<DerefTuple>(var)) {
+        return m + std::get<DerefTuple>(var).to_string();
+    } else if (std::holds_alternative<FunCall>(var)) {
+        return m + std::get<FunCall>(var).to_string();
+    } else if (std::holds_alternative<ID>(var)) {
+        return m + std::get<ID>(var).to_string();
+    } else if (std::holds_alternative<TypeExpr>(var)) {
+        return m + std::get<TypeExpr>(var).to_string();
+    } else {
+        throw std::logic_error("Expr::to_string -- dyn_var out of range");
+    }
     return "TODO_E";
+}
+
+std::string op_to_string(BinOperation::Operator o) {
+    switch (o)
+    {
+    case BinOperation::Operator::PLUS:
+        return "+";
+    case BinOperation::Operator::MINUS:
+        return "-";
+    case BinOperation::Operator::STAR:
+        return "*";
+    case BinOperation::Operator::SLASH:
+        return "/";
+    case BinOperation::Operator::IS_EQUAL:
+        return "==";
+    case BinOperation::Operator::NOT_EQUAL:
+        return "!=";
+    case BinOperation::Operator::AND:
+        return "&&";
+    case BinOperation::Operator::OR:
+        return "||";
+    case BinOperation::Operator::LESS:
+        return "<";
+    case BinOperation::Operator::GREATER:
+        return ">";
+    case BinOperation::Operator::LEQ:
+        return "<=";
+    case BinOperation::Operator::GEQ:
+        return ">=";
+    default:
+        throw std::logic_error("Operator to_string -- enum out of range");
+    }
+    return "???";
+}
+
+std::string BinOperation::to_string() const {
+    std::string l = "X";
+    std::string r = "X";
+    if (left_expr) {
+        l = left_expr->to_string();
+    }
+    if (right_expr) {
+        r = right_expr->to_string();
+    }
+    return l + op_to_string(op) + r;
+}
+std::string DerefArray::to_string() const {
+    std::string l = "X";
+    std::string r = "X";
+    if (array_expr) {
+        l = array_expr->to_string();
+    }
+    if (deref_expr) {
+        r = deref_expr->to_string();
+    }
+    return l + "[" + r + "]";
+}
+std::string DerefTuple::to_string() const {
+    std::string l = "X";
+    std::string r = "X";
+    if (tuple_expr) {
+        l = tuple_expr->to_string();
+    }
+    if (deref_expr) {
+        r = deref_expr->to_string();
+    }
+    return l + "<" + r + ">";
+}
+std::string FunCall::to_string() const {
+    std::string l = "X";
+    std::string r = "X";
+    if (fun) {
+        l = fun->to_string();
+    }
+    if (fun_args) {
+        r = "";
+        std::string delim = "";
+        for (const auto& e : *fun_args) {
+            r += delim;
+            r += e.to_string();
+            delim = ",";
+        }
+    }
+    return l + "(" + r + ")";
+}
+std::string TypeExpr::to_string() const {
+    if (std::holds_alternative<int>(expr)) {
+        return std::to_string(std::get<int>(expr));
+    } else if (std::holds_alternative<char>(expr)) {
+        return std::string{std::get<char>(expr)};
+    } else if (std::holds_alternative<std::string>(expr)) {
+        return std::get<std::string>(expr);
+    } else if (std::holds_alternative<bool>(expr)) {
+        if (std::get<bool>(expr))
+            return "T";
+        else
+            return "F";
+    } else if (std::holds_alternative<PtrExpr>(expr)) {
+        const auto& p = std::get<PtrExpr>(expr);
+        if (!p.ref_expr && !p.deref_expr) {
+            return "&$";
+        }
+        if (p.ref_expr && p.deref_expr) {
+            throw std::logic_error("Ptr expr have both ref and deref");
+        }
+        if (p.ref_expr) {
+            return "&" + p.ref_expr->to_string();
+        }
+        return "*" + p.deref_expr->to_string();
+    } else if (std::holds_alternative<OptExpr>(expr)) {
+        const auto& p = std::get<OptExpr>(expr);
+        if (!p.opt_expr && !p.nopt_expr) {
+            return "?$";
+        }
+        if (p.opt_expr && p.nopt_expr) {
+            throw std::logic_error("Opt expr have both opt and nopt");
+        }
+        if (p.opt_expr) {
+            return "?" + p.opt_expr->to_string();
+        }
+        return "!" + p.nopt_expr->to_string();
+    } else if (std::holds_alternative<TupleExpr>(expr)) {
+        std::string res = "<";
+        std::string delim = "";
+        for (const auto& p : std::get<TupleExpr>(expr).exprs) {
+            res += delim;
+            res += p.to_string();
+            delim = ",";
+        }
+        return res + ">";
+    } else if (std::holds_alternative<ArrayExpr>(expr)) {
+        std::string res = "[";
+        std::string delim = "";
+        for (const auto& p : std::get<ArrayExpr>(expr).exprs) {
+            res += delim;
+            res += p.to_string();
+            delim = ",";
+        }
+        return res + "]";
+    } else {
+        throw std::logic_error("TypeExpr:to_string -- variant out of range");
+    }
+    return "TODO_TE";
 }
 
 std::string FunBodyPart::to_string() const {
@@ -96,6 +260,56 @@ std::string FunBody::to_string() const {
 }
 
 std::string Type::to_string() const {
+    if (std::holds_alternative<std::monostate>(var)) {
+        return "M";
+    } else if (std::holds_alternative<Primitive>(var)) {
+        const auto& p = std::get<Primitive>(var);
+        switch (p)
+        {
+        case Primitive::UNIT:
+            return "U";
+        case Primitive::INT:
+            return "I";
+        case Primitive::CHAR:
+            return "C";
+        case Primitive::BOOL:
+            return "B";
+        default:
+            throw std::logic_error("Type::to_string -- primitive enum out of range");
+        }
+    } else if (std::holds_alternative<Ptr>(var)) {
+        const auto& p = std::get<Ptr>(var);
+        if (!p) {
+            return "*$";
+        }
+        return "*" + p->to_string();
+    } else if (std::holds_alternative<Opt>(var)) {
+        const auto& p = std::get<Opt>(var);
+        if (!p) {
+            return "?$";
+        }
+        return "?" + p->to_string();
+    } else if (std::holds_alternative<Tuple>(var)) {
+        const auto& p = std::get<Tuple>(var);
+        std::string res = "<";
+        std::string delim = "";
+        for (const auto& t : p) {
+            res += delim;
+            res += t.to_string();
+            delim = ",";
+        }
+        res += ">";
+        return res;
+    } else if (std::holds_alternative<Array>(var)) {
+        const auto& p = std::get<Array>(var);
+        return "[" + p.first.to_string() + "," + std::to_string(p.second) + "]";
+    } else if (std::holds_alternative<Fun>(var)) {
+        const auto& p = std::get<Fun>(var);
+        Type cheat = { .var = std::make_shared<Tuple>(p.first) };
+        return "(" + cheat.to_string() + "->" + p.second.to_string() + ")";
+    } else {
+        throw std::logic_error("Type::to_string -- dyn_var out of range");
+    }
     return "TODO_T";
 }
 
