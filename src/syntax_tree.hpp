@@ -83,6 +83,8 @@ struct PtrExpr {
     // neither -> &$
     std::shared_ptr<Expr> ref_expr;
     std::shared_ptr<Expr> deref_expr;
+
+    std::string to_string() const;
 };
 
 struct OptExpr {
@@ -91,14 +93,20 @@ struct OptExpr {
     // neither -> ?$
     std::optional<Expr> opt_expr;
     std::optional<Expr> nopt_expr;
+
+    std::string to_string() const;
 };
 
 struct TupleExpr {
     std::vector<Expr> exprs;
+
+    std::string to_string() const;
 };
 
 struct ArrayExpr {
     std::vector<Expr> exprs;
+
+    std::string to_string() const;
 };
 
 struct TypeExpr {
@@ -146,6 +154,8 @@ struct Type {
     bool empty() const;
 
     std::string to_string() const;
+
+    bool is_equivalent(const Type& other) const;
 };
 
 struct VarDecl {
