@@ -10,6 +10,71 @@ bool Type::operator!=(const Type& other) const {
     return !(*this == other);
 }
 
+
+bool Type::is_equivalent(const Type& other) const {
+    const auto& o_var = other.var;
+    if (std::holds_alternative<std::monostate>(var)) {
+        return true;
+    }
+    if (std::holds_alternative<std::monostate>(o_var)) {
+        return true;
+    }
+    if (std::holds_alternative<Primitive>(var)) {
+        return std::holds_alternative<Primitive>(o_var) ;
+    }
+    if (std::holds_alternative<Ptr>(var)) {
+        return std::holds_alternative<Ptr>(o_var)
+            && std::get<Ptr>(var)->is_equivalent(*std::get<Ptr>(o_var));
+    }
+    if (std::holds_alternative<Opt>(var)) {
+        return std::holds_alternative<Opt>(o_var)
+            && std::get<Opt>(var)->is_equivalent(*std::get<Opt>(o_var));
+    }
+    if (std::holds_alternative<Tuple>(var)) {
+        if (!std::holds_alternative<Tuple>(o_var)) {
+            return false;
+        }
+        const Tuple& tt = std::get<Tuple>(var);
+        const Tuple& ot = std::get<Tuple>(o_var);
+        if (tt.size() != ot.size()) {
+            return false;
+        }
+        for (unsigned i = 0; i < tt.size(); ++i) {
+            if (!tt[i].is_equivalent(ot[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (std::holds_alternative<Array>(var)) {
+        if (!std::holds_alternative<Array>(o_var)) {
+            return false;
+        }
+        if (std::get<Array>(var).second != std::get<Array>(o_var).second) {
+            return false;
+        }
+        return std::get<Array>(var).first.is_equivalent(std::get<Array>(o_var).first);
+    }
+    if (std::holds_alternative<Fun>(var)) {
+        if (!std::holds_alternative<Fun>(o_var)) {
+            return false;
+        }
+        const Fun& ft = std::get<Fun>(var);
+        const Fun& ot = std::get<Fun>(o_var);
+        if (ft.first.size() !=  ot.first.size()) {
+            return false;
+        }
+        for (unsigned i = 0; i < ft.first.size(); ++i) {
+            if (!ft.first[i].is_equivalent(ot.first[i])) {
+                return false;
+            }
+        }
+        return ft.second.is_equivalent(ot.second);
+    }
+    throw std::logic_error("I think I should throw error here");
+    return false;
+}
+
 bool Type::is_full_type() const {
     if (std::holds_alternative<Primitive>(var)) {
         return true;
@@ -140,6 +205,7 @@ std::string BinOperation::to_string() const {
     }
     return l + op_to_string(op) + r;
 }
+
 std::string DerefArray::to_string() const {
     std::string l = "X";
     std::string r = "X";
@@ -151,6 +217,7 @@ std::string DerefArray::to_string() const {
     }
     return l + "[" + r + "]";
 }
+
 std::string DerefTuple::to_string() const {
     std::string l = "X";
     std::string r = "X";
@@ -162,6 +229,7 @@ std::string DerefTuple::to_string() const {
     }
     return l + "<" + r + ">";
 }
+
 std::string FunCall::to_string() const {
     std::string l = "X";
     std::string r = "X";
@@ -179,6 +247,55 @@ std::string FunCall::to_string() const {
     }
     return l + "(" + r + ")";
 }
+
+std::string PtrExpr::to_string() const {
+    if (!ref_expr && !deref_expr) {
+        return "&$";
+    }
+    if (ref_expr && deref_expr) {
+        throw std::logic_error("Ptr expr have both ref and deref");
+    }
+    if (ref_expr) {
+        return "&" + ref_expr->to_string();
+    }
+    return "*" + deref_expr->to_string();
+}
+
+std::string OptExpr::to_string() const {
+    if (!opt_expr && !nopt_expr) {
+        return "?$";
+    }
+    if (opt_expr && nopt_expr) {
+        throw std::logic_error("Opt expr have both opt and nopt");
+    }
+    if (opt_expr) {
+        return "?" + opt_expr->to_string();
+    }
+    return "!" + nopt_expr->to_string();
+}
+
+std::string TupleExpr::to_string() const {
+    std::string res = "<";
+    std::string delim = "";
+    for (const auto& p : exprs) {
+        res += delim;
+        res += p.to_string();
+        delim = ",";
+    }
+    return res + ">";
+}
+
+std::string ArrayExpr::to_string() const {
+    std::string res = "[";
+    std::string delim = "";
+    for (const auto& p : exprs) {
+        res += delim;
+        res += p.to_string();
+        delim = ",";
+    }
+    return res + "]";
+}
+
 std::string TypeExpr::to_string() const {
     if (std::holds_alternative<int>(expr)) {
         return std::to_string(std::get<int>(expr));
@@ -192,47 +309,13 @@ std::string TypeExpr::to_string() const {
         else
             return "F";
     } else if (std::holds_alternative<PtrExpr>(expr)) {
-        const auto& p = std::get<PtrExpr>(expr);
-        if (!p.ref_expr && !p.deref_expr) {
-            return "&$";
-        }
-        if (p.ref_expr && p.deref_expr) {
-            throw std::logic_error("Ptr expr have both ref and deref");
-        }
-        if (p.ref_expr) {
-            return "&" + p.ref_expr->to_string();
-        }
-        return "*" + p.deref_expr->to_string();
+        return std::get<PtrExpr>(expr).to_string();
     } else if (std::holds_alternative<OptExpr>(expr)) {
-        const auto& p = std::get<OptExpr>(expr);
-        if (!p.opt_expr && !p.nopt_expr) {
-            return "?$";
-        }
-        if (p.opt_expr && p.nopt_expr) {
-            throw std::logic_error("Opt expr have both opt and nopt");
-        }
-        if (p.opt_expr) {
-            return "?" + p.opt_expr->to_string();
-        }
-        return "!" + p.nopt_expr->to_string();
+        return std::get<OptExpr>(expr).to_string();
     } else if (std::holds_alternative<TupleExpr>(expr)) {
-        std::string res = "<";
-        std::string delim = "";
-        for (const auto& p : std::get<TupleExpr>(expr).exprs) {
-            res += delim;
-            res += p.to_string();
-            delim = ",";
-        }
-        return res + ">";
+        return std::get<TupleExpr>(expr).to_string();
     } else if (std::holds_alternative<ArrayExpr>(expr)) {
-        std::string res = "[";
-        std::string delim = "";
-        for (const auto& p : std::get<ArrayExpr>(expr).exprs) {
-            res += delim;
-            res += p.to_string();
-            delim = ",";
-        }
-        return res + "]";
+        return std::get<ArrayExpr>(expr).to_string();
     } else {
         throw std::logic_error("TypeExpr:to_string -- variant out of range");
     }
