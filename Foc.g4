@@ -15,7 +15,7 @@ funDecl: type ID OpenPar funArgs ClosePar OpenCurly funBody CloseCurly;
 funArgs: funArg
        | /* epsilon */;
 
-funArg: type ID Comma funArg
+funArg: funArg Comma type ID
       | type ID;
 
 funBody: funBody varDecl
@@ -37,7 +37,7 @@ varDecl: type ID Semicolon
 listIDs: listID
        | /* epsilon */;
 
-listID: ID Comma listID
+listID: listID Comma ID
       | ID;
 
 assignment: expr Equal expr Semicolon;
@@ -95,7 +95,7 @@ arrayExpr: OpenSquare listExprs CloseSquare;
 listExprs: listExpr
          | /* epsilon */;
 
-listExpr: expr Comma listExpr
+listExpr: listExpr Comma expr
         | expr;
 
 operator_: Plus
@@ -118,22 +118,20 @@ bool_: TRUE | FALSE;
 
 // Type stuff *************************************************************************************
 
-type: UNIT_TYPE                                /* () */
-    | INT_TYPE                                 /* int */
-    | CHAR_TYPE                                /* char */
-    | BOOL_TYPE                                /* bool */
-    | Star type                                /* pointer */
-    | QuestionMark type                        /* optional */
-    | OpenSharp CloseSharp                     /* 0-tuple */
-    | OpenSharp typeList CloseSharp            /* tuple */
-    | OpenSquare type Comma INT CloseSquare    /* array */
-    | OpenPar funArgTypes Arrow type ClosePar; /* function type */
+type: UNIT_TYPE                                                  /* () */
+    | INT_TYPE                                                   /* int */
+    | CHAR_TYPE                                                  /* char */
+    | BOOL_TYPE                                                  /* bool */
+    | Star type                                                  /* pointer */
+    | QuestionMark type                                          /* optional */
+    | OpenSharp CloseSharp                                       /* 0-tuple */
+    | OpenSharp typeList CloseSharp                              /* tuple */
+    | OpenSquare type Comma INT CloseSquare                      /* array */
+    | OpenPar OpenSharp CloseSharp Arrow type ClosePar           /* function type with 0 args */
+    | OpenPar OpenSharp typeList CloseSharp Arrow type ClosePar; /* function type */
 
-typeList: type Comma typeList
+typeList: typeList Comma type
         | type;
-
-funArgTypes: funArgTypes Arrow type
-           | type;
 
 // Lexer rules ************************************************************************************
 
