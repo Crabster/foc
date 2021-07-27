@@ -10,18 +10,17 @@ decls: decls funDecl
 
 comment: COMMENT;
 
-funDecl: type ID OpenPar funArgs ClosePar OpenCurly funBody CloseCurly;
+funDecl: type ID UNIT_TYPE OpenCurly funBody CloseCurly
+       | type ID OpenPar funArgs ClosePar OpenCurly funBody CloseCurly;
 
-funArgs: funArg
-       | /* epsilon */;
-
-funArg: funArg Comma type ID
-      | type ID;
+funArgs: funArgs Comma type ID
+       | type ID;
 
 funBody: funBody varDecl
        | funBody assignment
        | funBody flow
        | funBody comment
+       | funBody expr
        | /* epsilon */;
 
 varDecl: type ID Semicolon

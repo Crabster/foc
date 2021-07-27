@@ -120,7 +120,7 @@ struct Assign;
 struct Flow;
 
 struct FunBodyPart {
-    std::dynamic_variant<VarDecl, Assign, Flow> var;
+    std::dynamic_variant<VarDecl, Assign, Flow, Expr> var;
 
     std::string to_string() const;
 };
