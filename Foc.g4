@@ -61,13 +61,13 @@ elseCond: ELSE OpenCurly funBody CloseCurly
 
 // Expression stuff *******************************************************************************
 
-expr: expr operator_ expr
+expr: expr OpenPar listExprs ClosePar
+    | expr operator_ expr
+    | OpenPar expr ClosePar
     | expr UNIT_TYPE
-    | expr OpenPar listExprs ClosePar
     | expr OpenSquare expr CloseSquare
     | expr OpenSharp expr CloseSharp
     | typeExpr
-    | OpenPar expr ClosePar
     | Minus expr
     | ID;
 
