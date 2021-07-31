@@ -32,7 +32,6 @@ public:
     antlrcpp::Any visitTupleExpr(FocParser::TupleExprContext *ctx);
     antlrcpp::Any visitArrayExpr(FocParser::ArrayExprContext *ctx);
     antlrcpp::Any visitListExprs(FocParser::ListExprsContext *ctx);
-    antlrcpp::Any visitListExpr(FocParser::ListExprContext *ctx);
     antlrcpp::Any visitListIDs(FocParser::ListIDsContext *ctx);
     antlrcpp::Any visitListID(FocParser::ListIDContext *ctx);
     antlrcpp::Any visitOperator_(FocParser::Operator_Context *ctx);

@@ -171,6 +171,10 @@ antlrcpp::Any CodeVisitor::visitExpr(FocParser::ExprContext *ctx) {
             .right_expr = second_expr,
             .op = visitOperator_(ctx->operator_()).as<BinOperation::Operator>(),
         };
+    } else if (ctx->UNIT_TYPE()) {
+        expr.var = FunCall{
+            .fun = first_expr,
+        };
     } else if (ctx->listExprs()) {
         expr.var = FunCall{
             .fun = first_expr,
@@ -194,6 +198,8 @@ antlrcpp::Any CodeVisitor::visitExpr(FocParser::ExprContext *ctx) {
         expr.minus ^= true;
     } else if (ctx->ID()) {
         expr.var = ID{ .name = ctx->ID()->getText() };
+    } else {
+        expr = *first_expr;
     }
     return expr;
 }
@@ -258,16 +264,8 @@ antlrcpp::Any CodeVisitor::visitArrayExpr(FocParser::ArrayExprContext *ctx) {
 
 antlrcpp::Any CodeVisitor::visitListExprs(FocParser::ListExprsContext *ctx) {
     std::vector<Expr> exprs;
-    if (ctx->listExpr()) {
-        exprs = visitListExpr(ctx->listExpr()).as<std::vector<Expr>>();
-    }
-    return exprs;
-}
-
-antlrcpp::Any CodeVisitor::visitListExpr(FocParser::ListExprContext *ctx) {
-    std::vector<Expr> exprs;
-    if (ctx->listExpr()) {
-        exprs = visitListExpr(ctx->listExpr()).as<std::vector<Expr>>();
+    if (ctx->listExprs()) {
+        exprs = visitListExprs(ctx->listExprs()).as<std::vector<Expr>>();
     }
     exprs.push_back(visitExpr(ctx->expr()).as<Expr>());
     return exprs;

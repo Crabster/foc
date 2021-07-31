@@ -62,6 +62,7 @@ elseCond: ELSE OpenCurly funBody CloseCurly
 // Expression stuff *******************************************************************************
 
 expr: expr operator_ expr
+    | expr UNIT_TYPE
     | expr OpenPar listExprs ClosePar
     | expr OpenSquare expr CloseSquare
     | expr OpenSharp expr CloseSharp
@@ -91,11 +92,8 @@ tupleExpr: OpenSharp listExprs CloseSharp;
 
 arrayExpr: OpenSquare listExprs CloseSquare;
 
-listExprs: listExpr
-         | /* epsilon */;
-
-listExpr: listExpr Comma expr
-        | expr;
+listExprs: listExprs Comma expr
+         | expr;
 
 operator_: Plus
          | Minus
