@@ -69,8 +69,10 @@ struct FunCall {
 };
 
 struct TypeExpr;
+struct Type;
 
 struct Expr {
+    std::shared_ptr<Type> type;
     std::dynamic_variant<std::monostate, BinOperation, DerefArray, DerefTuple, FunCall, ID, TypeExpr> var;
     bool minus = false;
 
@@ -154,6 +156,8 @@ struct Type {
     bool empty() const;
 
     std::string to_string() const;
+
+    size_t byte_size() const;
 
     bool is_equivalent(const Type& other) const;
 };

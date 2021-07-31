@@ -313,7 +313,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
     } else if (std::holds_alternative<DerefTuple>(expr.var)) {
         const auto& tuple_expr = std::get<DerefTuple>(expr.var).tuple_expr;
         const auto& deref_expr = std::get<DerefTuple>(expr.var).deref_expr;
-        if (!tuple_expr || deref_expr) {
+        if (!tuple_expr || !deref_expr) {
             throw std::logic_error("Wtf man, empty derefTuple???");
         }
         auto ltype = get_expr_type(*tuple_expr, context);

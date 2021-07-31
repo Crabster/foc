@@ -518,4 +518,21 @@ std::string Program::to_string() const {
     return res;
 }
 
+size_t Type::byte_size() const {
+    if (std::holds_alternative<Type::Array>(var)) {
+        const Type::Array& array = std::get<Type::Array>(var);
+        return array.first.byte_size() * array.second;
+    } else if (std::holds_alternative<Type::Tuple>(var)) {
+        const Type::Tuple& tuple = std::get<Type::Tuple>(var);
+
+        size_t tuple_size = 0;
+        for (int i = 0; i < tuple.size(); ++i) {
+            tuple_size += tuple[i].byte_size();
+        }
+        return tuple_size;
+    } else {
+        return 8;
+    }
+}
+
 }
