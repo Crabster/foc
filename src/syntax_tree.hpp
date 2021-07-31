@@ -72,7 +72,7 @@ struct TypeExpr;
 struct Type;
 
 struct Expr {
-    std::shared_ptr<Type> type;
+    mutable std::shared_ptr<Type> type;
     std::dynamic_variant<std::monostate, BinOperation, DerefArray, DerefTuple, FunCall, ID, TypeExpr> var;
     bool minus = false;
 
@@ -85,16 +85,6 @@ struct PtrExpr {
     // neither -> &$
     std::shared_ptr<Expr> ref_expr;
     std::shared_ptr<Expr> deref_expr;
-
-    std::string to_string() const;
-};
-
-struct OptExpr {
-    // ?opt_expr
-    // !nopt_expr
-    // neither -> ?$
-    std::optional<Expr> opt_expr;
-    std::optional<Expr> nopt_expr;
 
     std::string to_string() const;
 };
@@ -112,7 +102,7 @@ struct ArrayExpr {
 };
 
 struct TypeExpr {
-    std::variant<int, char, std::string, bool, PtrExpr, OptExpr, TupleExpr, ArrayExpr> expr;
+    std::variant<int, char, std::string, bool, PtrExpr, TupleExpr, ArrayExpr> expr;
 
     std::string to_string() const;
 };
@@ -121,8 +111,12 @@ struct VarDecl;
 struct Assign;
 struct Flow;
 
+struct Print {
+    Expr expr;
+};
+
 struct FunBodyPart {
-    std::dynamic_variant<VarDecl, Assign, Flow, Expr> var;
+    std::dynamic_variant<VarDecl, Assign, Flow, Expr, Print> var;
 
     std::string to_string() const;
 };
@@ -141,13 +135,12 @@ struct Type {
         BOOL,
     };
 
-    using Opt   = std::optional<Type>;
     using Ptr   = std::shared_ptr<Type>;
     using Tuple = std::vector<Type>;
     using Array = std::pair<Type, int>;
     using Fun   = std::pair<Tuple, Type>;
 
-    std::dynamic_variant<std::monostate, Primitive, Ptr, Opt, Tuple, Array, Fun> var;
+    std::dynamic_variant<std::monostate, Primitive, Ptr, Tuple, Array, Fun> var;
 
     bool operator==(const Type& other) const;
     bool operator!=(const Type& other) const;
@@ -157,7 +150,7 @@ struct Type {
 
     std::string to_string() const;
 
-    size_t byte_size() const;
+    int64_t byte_size() const;
 
     bool is_equivalent(const Type& other) const;
 };

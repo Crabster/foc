@@ -73,32 +73,6 @@ std::optional<Type> get_texpr_type(const PtrExpr& expr, std::shared_ptr<IDContex
     }
 }
 
-std::optional<Type> get_texpr_type(const OptExpr& expr, std::shared_ptr<IDContext> context) {
-    Type res;
-    if (expr.opt_expr) {
-        auto sub_res = get_expr_type(*expr.opt_expr, context);
-        if (!sub_res) {
-            return {};
-        }
-        res.var = std::optional<Type>(*sub_res);
-        return res;
-    } else if (expr.nopt_expr) {
-        auto sub_res = get_expr_type(*expr.nopt_expr, context);
-        if (!sub_res) {
-            return {};
-        }
-        if (!std::holds_alternative<Type::Opt>(sub_res->var)) {
-            std::cerr << "TypeError: De-maybeing non-maybe type -- " << expr.to_string() << std::endl;
-            return {};
-        }
-        return *std::get<Type::Opt>(sub_res->var);
-    } else {
-        Type sub_res;
-        res.var = std::optional<Type>(std::move(sub_res));
-        return res;
-    }
-}
-
 std::optional<Type> get_texpr_type(const TupleExpr& expr, std::shared_ptr<IDContext> context) {
     Type res;
     std::vector<Type> vres;
@@ -388,6 +362,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
         }
     }
 
+    expr.type = std::make_shared<Type>(*result);
     return result;
 }
 
@@ -464,17 +439,6 @@ bool is_lvalue(const PtrExpr& expr) {
         return is_lvalue(*expr.deref_expr);
     }
     std::cerr << "Error: Assigning into &$" << std::endl;
-    return false;
-}
-
-bool is_lvalue(const OptExpr& expr) {
-    if (expr.opt_expr) {
-        return is_lvalue(*expr.opt_expr);
-    }
-    if (expr.nopt_expr) {
-        return is_lvalue(*expr.nopt_expr);
-    }
-    std::cerr << "Error: Assigning into ?$" << std::endl;
     return false;
 }
 
@@ -633,6 +597,12 @@ bool syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, bool 
             continue;
         } else if (std::holds_alternative<Flow>(part.var)) {
             res &= syntax_check(std::get<Flow>(part.var), context, in_cycle, ret_type);
+            continue;
+        } else if (std::holds_alternative<Expr>(part.var)) {
+            res &= get_expr_type(std::get<Expr>(part.var), context).has_value();
+            continue;
+        } else if (std::holds_alternative<Print>(part.var)) {
+            res &= get_expr_type(std::get<Print>(part.var).expr, context).has_value();
             continue;
         } else {
             throw std::logic_error("Bug in parser, empty body");

@@ -20,7 +20,8 @@ funBody: funBody varDecl
        | funBody assignment
        | funBody flow
        | funBody comment
-       | funBody expr
+       | funBody expr Semicolon
+       | funBody PRINT OpenPar expr ClosePar Semicolon
        | /* epsilon */;
 
 varDecl: type ID Semicolon
@@ -33,11 +34,8 @@ varDecl: type ID Semicolon
        | type OpenSharp listIDs CloseSharp Equal expr Semicolon
        | AUTO OpenSharp listIDs CloseSharp Equal expr Semicolon;
 
-listIDs: listID
-       | /* epsilon */;
-
-listID: listID Comma ID
-      | ID;
+listIDs: listIDs Comma ID
+       | ID;
 
 assignment: expr Equal expr Semicolon;
 
@@ -76,17 +74,12 @@ typeExpr: INT
         | STRING
         | bool_
         | ptrExpr
-        | optExpr
         | tupleExpr
         | arrayExpr;
 
 ptrExpr: Ampersand expr
        | Ampersand Dollar
        | Star expr;
-
-optExpr: QuestionMark expr
-       | QuestionMark Dollar
-       | ExclMark expr;
 
 tupleExpr: OpenSharp listExprs CloseSharp;
 
@@ -120,7 +113,6 @@ type: UNIT_TYPE                                                  /* () */
     | CHAR_TYPE                                                  /* char */
     | BOOL_TYPE                                                  /* bool */
     | Star type                                                  /* pointer */
-    | QuestionMark type                                          /* optional */
     | OpenSharp CloseSharp                                       /* 0-tuple */
     | OpenSharp typeList CloseSharp                              /* tuple */
     | OpenSquare type Comma INT CloseSquare                      /* array */
@@ -134,6 +126,7 @@ typeList: typeList Comma type
 
 COMMENT: Slash Star (UnescapedChar | ' ')* Star Slash;
 
+PRINT: 'print';
 WHILE: 'while';
 
 IF  : 'if';
@@ -147,7 +140,7 @@ BREAK: 'break';
 TRUE: 'T';
 FALSE: 'F';
 
-ID: LETTER (LETTER | '0'..'9')*;
+ID: LETTER (LETTER | '0'..'9' | '_')*;
 fragment LETTER : [a-zA-Z];
 
 UNIT_TYPE: '()';
@@ -183,13 +176,11 @@ CloseSharp:    '>';
 Arrow:        '->';
 Comma:         ',';
 Ampersand:     '&';
-QuestionMark:  '?';
-ExclMark:      '!';
 Dollar:        '$';
 Slash:         '/';
 
 CHAR: '\'' UnescapedChar '\'';
 STRING: '"' UnescapedChar* '"';
-fragment UnescapedChar: [\u0032-\u0126];
+fragment UnescapedChar: [ \u0032-\u0126];
 
 WS: [ \t\r\n]+ -> channel(HIDDEN);

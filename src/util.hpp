@@ -12,6 +12,11 @@ public:
         return *this;
     }
 
+    template <class Visitor>
+    void visit(Visitor&& vis) const {
+        std::visit([&](std::shared_ptr<auto> arg) { return vis(*arg); }, m_var);
+    }
+
 
     bool operator==(const dynamic_variant& other) const {
         return m_var == other.m_var;

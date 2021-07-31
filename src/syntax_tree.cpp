@@ -26,10 +26,6 @@ bool Type::is_equivalent(const Type& other) const {
         return std::holds_alternative<Ptr>(o_var)
             && std::get<Ptr>(var)->is_equivalent(*std::get<Ptr>(o_var));
     }
-    if (std::holds_alternative<Opt>(var)) {
-        return std::holds_alternative<Opt>(o_var)
-            && std::get<Opt>(var)->is_equivalent(*std::get<Opt>(o_var));
-    }
     if (std::holds_alternative<Tuple>(var)) {
         if (!std::holds_alternative<Tuple>(o_var)) {
             return false;
@@ -81,9 +77,6 @@ bool Type::is_full_type() const {
     }
     if (std::holds_alternative<Ptr>(var)) {
         return std::get<Ptr>(var)->is_full_type();
-    }
-    if (std::holds_alternative<Opt>(var)) {
-        return std::get<Opt>(var)->is_full_type();
     }
     if (std::holds_alternative<Tuple>(var)) {
         const Tuple& tuple_type = std::get<Tuple>(var);
@@ -165,29 +158,29 @@ std::string op_to_string(BinOperation::Operator o) {
     switch (o)
     {
     case BinOperation::Operator::PLUS:
-        return "+";
+        return " + ";
     case BinOperation::Operator::MINUS:
-        return "-";
+        return " - ";
     case BinOperation::Operator::STAR:
-        return "*";
+        return " * ";
     case BinOperation::Operator::SLASH:
-        return "/";
+        return " / ";
     case BinOperation::Operator::IS_EQUAL:
-        return "==";
+        return " == ";
     case BinOperation::Operator::NOT_EQUAL:
-        return "!=";
+        return " != ";
     case BinOperation::Operator::AND:
-        return "&&";
+        return " && ";
     case BinOperation::Operator::OR:
-        return "||";
+        return " || ";
     case BinOperation::Operator::LESS:
-        return "<";
+        return " < ";
     case BinOperation::Operator::GREATER:
-        return ">";
+        return " > ";
     case BinOperation::Operator::LEQ:
-        return "<=";
+        return " <= ";
     case BinOperation::Operator::GEQ:
-        return ">=";
+        return " >= ";
     default:
         throw std::logic_error("Operator to_string -- enum out of range");
     }
@@ -245,7 +238,7 @@ std::string FunCall::to_string() const {
             delim = ",";
         }
     }
-    return l + "(" + r + ")";
+    return l + "(" + r + ");\n";
 }
 
 std::string PtrExpr::to_string() const {
@@ -259,19 +252,6 @@ std::string PtrExpr::to_string() const {
         return "&" + ref_expr->to_string();
     }
     return "*" + deref_expr->to_string();
-}
-
-std::string OptExpr::to_string() const {
-    if (!opt_expr && !nopt_expr) {
-        return "?$";
-    }
-    if (opt_expr && nopt_expr) {
-        throw std::logic_error("Opt expr have both opt and nopt");
-    }
-    if (opt_expr) {
-        return "?" + opt_expr->to_string();
-    }
-    return "!" + nopt_expr->to_string();
 }
 
 std::string TupleExpr::to_string() const {
@@ -310,8 +290,6 @@ std::string TypeExpr::to_string() const {
             return "F";
     } else if (std::holds_alternative<PtrExpr>(expr)) {
         return std::get<PtrExpr>(expr).to_string();
-    } else if (std::holds_alternative<OptExpr>(expr)) {
-        return std::get<OptExpr>(expr).to_string();
     } else if (std::holds_alternative<TupleExpr>(expr)) {
         return std::get<TupleExpr>(expr).to_string();
     } else if (std::holds_alternative<ArrayExpr>(expr)) {
@@ -329,6 +307,12 @@ std::string FunBodyPart::to_string() const {
         return std::get<Assign>(var).to_string();
     } else if (std::holds_alternative<Flow>(var)) {
         return std::get<Flow>(var).to_string();
+    } else if (std::holds_alternative<Expr>(var)) {
+        return std::get<Expr>(var).to_string();
+    } else if (std::holds_alternative<Print>(var)) {
+        std::string str = "print(";
+        str += std::get<Print>(var).expr.to_string();
+        return str + ");\n";
     } else {
         throw std::logic_error("Error in FunBodyPart::to_string -- holds_alternative didnt catch");
     }
@@ -366,12 +350,6 @@ std::string Type::to_string() const {
             return "*$";
         }
         return "*" + p->to_string();
-    } else if (std::holds_alternative<Opt>(var)) {
-        const auto& p = std::get<Opt>(var);
-        if (!p) {
-            return "?$";
-        }
-        return "?" + p->to_string();
     } else if (std::holds_alternative<Tuple>(var)) {
         const auto& p = std::get<Tuple>(var);
         std::string res = "<";
@@ -518,7 +496,7 @@ std::string Program::to_string() const {
     return res;
 }
 
-size_t Type::byte_size() const {
+int64_t Type::byte_size() const {
     if (std::holds_alternative<Type::Array>(var)) {
         const Type::Array& array = std::get<Type::Array>(var);
         return array.first.byte_size() * array.second;
