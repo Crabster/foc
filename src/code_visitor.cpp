@@ -60,6 +60,8 @@ antlrcpp::Any CodeVisitor::visitFunBody(FocParser::FunBodyContext *ctx) {
         part.var = std::move(visitAssignment(ctx->assignment()).as<Assign>());
     } else if (ctx->flow()) {
         part.var = std::move(visitFlow(ctx->flow()).as<Flow>());
+    } else if (ctx->PRINT()) {
+        part.var = Print{ .expr = std::move(visitExpr(ctx->expr()).as<Expr>()) };
     } else if (ctx->expr()) {
         part.var = std::move(visitExpr(ctx->expr()).as<Expr>());
     }
@@ -209,15 +211,13 @@ antlrcpp::Any CodeVisitor::visitTypeExpr(FocParser::TypeExprContext *ctx) {
     if (ctx->INT()) {
         expr.expr = std::stoi(ctx->INT()->getText());
     } else if (ctx->CHAR()) {
-        expr.expr = ctx->CHAR()->getText()[0];
+        expr.expr = ctx->CHAR()->getText()[1];
     } else if (ctx->STRING()) {
-        expr.expr = ctx->STRING()->getText();
+        expr.expr = ctx->STRING()->getText().substr(1, ctx->STRING()->getText().size() - 2);
     } else if (ctx->bool_()) {
         expr.expr = visitBool_(ctx->bool_()).as<bool>();
     } else if (ctx->ptrExpr()) {
         expr.expr = visitPtrExpr(ctx->ptrExpr()).as<PtrExpr>();
-    } else if (ctx->optExpr()) {
-        expr.expr = visitOptExpr(ctx->optExpr()).as<OptExpr>();
     } else if (ctx->tupleExpr()) {
         expr.expr = visitTupleExpr(ctx->tupleExpr()).as<TupleExpr>();
     } else {
@@ -236,18 +236,6 @@ antlrcpp::Any CodeVisitor::visitPtrExpr(FocParser::PtrExprContext *ctx) {
         }
     }
     return ptr;
-}
-
-antlrcpp::Any CodeVisitor::visitOptExpr(FocParser::OptExprContext *ctx) {
-    OptExpr opt;
-    if (ctx->expr()) {
-        if (ctx->QuestionMark()) {
-            opt.opt_expr = visitExpr(ctx->expr()).as<Expr>();
-        } else {
-            opt.nopt_expr = visitExpr(ctx->expr()).as<Expr>();
-        }
-    }
-    return opt;
 }
 
 antlrcpp::Any CodeVisitor::visitTupleExpr(FocParser::TupleExprContext *ctx) {
@@ -273,16 +261,8 @@ antlrcpp::Any CodeVisitor::visitListExprs(FocParser::ListExprsContext *ctx) {
 
 antlrcpp::Any CodeVisitor::visitListIDs(FocParser::ListIDsContext *ctx) {
     std::vector<ID> ids;
-    if (ctx->listID()) {
-        ids = visitListID(ctx->listID()).as<std::vector<ID>>();
-    }
-    return ids;
-}
-
-antlrcpp::Any CodeVisitor::visitListID(FocParser::ListIDContext *ctx) {
-    std::vector<ID> ids;
-    if (ctx->listID()) {
-        ids = visitListID(ctx->listID()).as<std::vector<ID>>();
+    if (ctx->listIDs()) {
+        ids = visitListIDs(ctx->listIDs()).as<std::vector<ID>>();
     }
     ids.push_back({ .name = ctx->ID()->getText() });
     return ids;
@@ -319,8 +299,6 @@ antlrcpp::Any CodeVisitor::visitType(FocParser::TypeContext *ctx) {
         type.var = Type::Primitive::BOOL;
     } else if (ctx->Star()) {
         type.var = std::make_shared<Type>(std::move(visitType(ctx->type()).as<Type>()));
-    } else if (ctx->QuestionMark()) {
-        type.var = std::optional(std::move(visitType(ctx->type()).as<Type>()));
     } else if (ctx->Arrow()) {
         Type::Tuple args_types;
         if (ctx->typeList()) {
