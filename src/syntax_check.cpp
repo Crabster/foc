@@ -21,6 +21,11 @@ std::optional<Type> make_bool() {
     return res;
 }
 
+bool is_bool(const Type& type) {
+    return std::holds_alternative<Type::Primitive>(type.var)
+        && std::get<Type::Primitive>(type.var) == Type::Primitive::BOOL;
+}
+
 std::optional<Type> get_texpr_type(const int& expr, std::shared_ptr<IDContext> context) {
     Type res;
     res.var = Type::Primitive::INT;
@@ -258,16 +263,27 @@ bool fun_args_matching(const Type::Fun& fun, const std::shared_ptr<std::vector<E
         std::cerr << "Error: Non-mathcing number of params" << std::endl;
         return false;
     }
-    bool res = true;
     for (unsigned i = 0; i < fun_args.size(); ++i) {
         auto r_type = get_expr_type(real_args[i], context);
         if (!r_type) {
-            res = false;
-            continue;
+            return false;
         }
-        res &= fun_args[i].is_equivalent(*r_type);
+        if (!fun_args[i].is_equivalent(*r_type)) {
+            std::string suf;
+            if (i % 10 == 1 && i != 11) {
+                suf = "st";
+            } else if (i % 10 == 2 && i != 12) {
+                suf = "nd";
+            } else if (i % 10 == 3 && i != 13) {
+                suf = "rd";
+            } else {
+                suf = "th";
+            }
+            std::cerr << "Error: " << i << suf << "parameter of function does not match declared type" << std::endl;
+            return false;
+        }
     }
-    return res;
+    return true;
 }
 
 std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> context) {
@@ -367,6 +383,9 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             return {};
         }
         result = context->find_type(std::get<ID>(expr.var));
+        if (!result) {
+            throw std::logic_error("Wtf, ID is declared, but cannot be found?");
+        }
 
     } else if (std::holds_alternative<TypeExpr>(expr.var)) {
         auto visit_cb = [&](const auto& arg) {
@@ -411,7 +430,7 @@ bool add_vec_context(const std::optional<std::vector<ID>>& ids, const Type& curr
     return context->add_contexts(*ids, curr_type);
 }
 
-bool syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context) {
+unsigned syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context, unsigned limit) {
     if (!decl.expr) {
             if (!decl.type) {
                 throw std::logic_error("Error in parser, using `_ x;`");
@@ -420,7 +439,7 @@ bool syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context) {
     }
     auto opt_type = get_expr_type(*decl.expr, context);
     if (!opt_type) {
-        return false;
+        return 1;
     }
     Type expr_type = *opt_type;
     if (!decl.type) {
@@ -430,10 +449,10 @@ bool syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context) {
         std::cerr << "TypeError: expression does not match declared type -- ";
         std::cerr << decl.type->to_string() << " vs " << expr_type.to_string() << std::endl;
         std::cerr << "| in " << decl.to_string() << std::endl;
-        return false;
+        return 1;
     }
 
-    return add_vec_context(decl.ids, *decl.type, context);
+    return add_vec_context(decl.ids, *decl.type, context) ? 0 : 1;
 }
 
 bool is_lvalue(const int& expr) {
@@ -527,142 +546,162 @@ bool is_lvalue(const Expr& expr) {
     return true;
 }
 
-bool syntax_check(const Assign& ass, std::shared_ptr<IDContext> context) {
+unsigned syntax_check(const Assign& ass, std::shared_ptr<IDContext> context, unsigned limit) {
     auto opt_ltype = get_expr_type(ass.assign_expr, context);
     auto opt_rtype = get_expr_type(ass.expr, context);
     if (!opt_ltype || !opt_rtype) {
         std::cerr << "Error: Ass bad" << std::endl;
         std::cerr << "| in " << ass.to_string() << std::endl;
-        return false;
+        return 1;
     }
     if (!opt_ltype->is_equivalent(*opt_rtype)) {
         std::cerr << "Error: Ass do not match" << std::endl;
         std::cerr << "| in " << ass.to_string() << std::endl;
-        return false;
+        return 1;
     }
     if (!is_lvalue(ass.assign_expr)) {
         std::cerr << "Error: Stupid ass (not l-val)" << std::endl;
         std::cerr << "| in " << ass.to_string() << std::endl;
-        return false;
+        return 1;
     }
-    return true;
+    return 0;
 }
 
-bool syntax_check(const IfCond& if_cond, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    bool res = true;
+unsigned syntax_check(const IfCond& if_cond, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type, unsigned limit) {
     auto cond_type = get_expr_type(if_cond.expr, context);
-    res &= (cond_type.has_value() && *cond_type == make_bool());
-    auto loc_context = std::make_shared<IDContext>(true);
-    loc_context->parent_context = context;
-    res &= syntax_check(if_cond.body, loc_context, in_cycle, ret_type);
-    return res;
+    unsigned errors = 0;
+    if (!cond_type.has_value()) {
+        std::cerr << "Error: Couldnt create the type of the condition in if" << std::endl;
+        errors += 1;
+    } else if (!is_bool(*cond_type)) {
+        std::cerr << "Error: The condition in if isnt boolean" << std::endl;
+        errors += 1;
+    }
+    auto loc_context = std::make_shared<IDContext>(context);
+    errors += syntax_check(if_cond.body, loc_context, in_cycle, ret_type, limit);
+    return errors;
 }
 
-bool syntax_check(const Cond& cond, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    bool res = true;
+unsigned syntax_check(const Cond& cond, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type, unsigned limit) {
+    unsigned errors = 0;
     for (const auto& ifcond : cond.if_conds) {
-        res &= syntax_check(ifcond, context, in_cycle, ret_type);
+        errors += syntax_check(ifcond, context, in_cycle, ret_type, limit);
+        if (errors >= limit) {
+            return errors;
+        }
     }
     if (cond.else_body) {
-        auto loc_context = std::make_shared<IDContext>(true);
-        loc_context->parent_context = context;
-        res &= syntax_check(*cond.else_body, loc_context, in_cycle, ret_type);
+        auto loc_context = std::make_shared<IDContext>(context);
+        errors += syntax_check(*cond.else_body, loc_context, in_cycle, ret_type, limit);
     }
-    return res;
+    return errors;
 }
 
-bool syntax_check(const Loop& loop, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    bool res = true;
+unsigned syntax_check(const Loop& loop, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type, unsigned limit) {
     auto cond_type = get_expr_type(loop.expr, context);
-    res &= (cond_type.has_value() && (*cond_type == make_bool()));
-    auto loc_context = std::make_shared<IDContext>(true);
-    loc_context->parent_context = context;
-    res &= syntax_check(loop.body, loc_context, true, ret_type);
-    return res;
+    unsigned errors = 0;
+    if (!cond_type.has_value()) {
+        std::cerr << "Error: Couldnt create the type of the condition in loop" << std::endl;
+        errors += 1;
+    } else if (!is_bool(*cond_type)) {
+        std::cerr << "Error: The condition in loop isnt boolean" << std::endl;
+        errors += 1;
+    }
+    auto loc_context = std::make_shared<IDContext>(context);
+    errors += syntax_check(loop.body, loc_context, true, ret_type, limit);
+    return errors;
 }
 
-bool syntax_check(const Flow::Control& ctrl, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
+unsigned syntax_check(const Flow::Control& ctrl, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type, unsigned limit) {
+    unsigned errors = 0;
     if (ctrl.first == Flow::ControlTypes::CONTINUE) {
         if (!in_cycle) {
-            std::cerr << "Warning: Using 'continue' outside loop" << std::endl;
+            errors += 1;
+            std::cerr << "Error: Using 'continue' outside loop" << std::endl;
         }
-        return in_cycle;
+        return errors;
     }
     if (ctrl.first == Flow::ControlTypes::BREAK) {
         if (!in_cycle) {
-            std::cerr << "Warning: Using 'break' outside loop" << std::endl;
+            errors += 1;
+            std::cerr << "Error: Using 'break' outside loop" << std::endl;
         }
-        return in_cycle;
+        return errors;
     }
     if (ctrl.first == Flow::ControlTypes::RETURN) {
         if (!ctrl.second) {
-            if (ret_type.empty()) {
-                return true;
+            if (!ret_type.empty()) {
+                errors += 1;
+                std::cerr << "Error: Returning empty expression from non-void function" << std::endl;
             }
-            std::cerr << "Error: Returning empty expression from non-void function" << std::endl;
-            return false;
+            return errors;
         }
         auto opt_type = get_expr_type(*ctrl.second, context);
         if (!opt_type || !opt_type->is_equivalent(ret_type)) {
+            errors += 1;
             std::cerr << "Error: Type of returning expression does not match the return type of function" << std::endl;
             std::cerr << "| " << ctrl.second->to_string() << " vs " << ret_type.to_string() << std::endl;
-            return false;
         }
-        return true;
+        return errors;
     }
 
     throw std::logic_error("Bug in parser, empty 'control'");
-    return false;
+    return errors;
 }
 
-bool syntax_check(const Flow& flow, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
+unsigned syntax_check(const Flow& flow, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type, unsigned limit) {
     auto visit_cb = [&](auto arg){
-        return syntax_check(arg, context, in_cycle, ret_type);
+        return syntax_check(arg, context, in_cycle, ret_type, limit);
     };
     return std::visit(visit_cb, flow.var);
 }
 
-bool syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type) {
-    bool res = true;
+unsigned syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type, unsigned limit) {
+    unsigned errors = 0;
     for (const auto& part : body.parts) {
+        if (errors >= limit) {
+            return errors;
+        }
         if (std::holds_alternative<VarDecl>(part.var)) {
-            res &= syntax_check(std::get<VarDecl>(part.var), context);
+            errors += syntax_check(std::get<VarDecl>(part.var), context, limit);
             continue;
         } else if (std::holds_alternative<Assign>(part.var)) {
-            res &= syntax_check(std::get<Assign>(part.var), context);
+            errors += syntax_check(std::get<Assign>(part.var), context, limit);
             continue;
         } else if (std::holds_alternative<Flow>(part.var)) {
-            res &= syntax_check(std::get<Flow>(part.var), context, in_cycle, ret_type);
+            errors += syntax_check(std::get<Flow>(part.var), context, in_cycle, ret_type, limit);
             continue;
         } else {
             throw std::logic_error("Bug in parser, empty body");
         }
     }
-    return res;
+    return errors;
 }
 
-bool syntax_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_context) {
-    auto loc_context = std::make_shared<IDContext>(true);
-    loc_context->parent_context = par_context;
+unsigned syntax_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_context, unsigned limit) {
+    auto loc_context = std::make_shared<IDContext>(par_context);
     for (const auto& fun_arg : fun_decl.args) {
         loc_context->add_context(fun_arg.id, fun_arg.type);
     }
-    return syntax_check(fun_decl.body, loc_context, false, fun_decl.ret_type);
+    return syntax_check(fun_decl.body, loc_context, false, fun_decl.ret_type, limit);
 }
 
-bool syntax_check(const Program& prog) {
-    auto glob_context = std::make_shared<IDContext>(true);
-    bool succ = true;
+unsigned syntax_check(const Program& prog, bool debug_mode, unsigned limit) {
+    auto glob_context = std::make_shared<IDContext>(nullptr, debug_mode);
+    unsigned errors = 0;
 
     for (const auto& fun_decl : prog.decls) {
         glob_context->add_context(fun_decl.id, create_fun_type(fun_decl));
     }
 
     for (const auto& fun_decl : prog.decls) {
-        succ &= syntax_check(fun_decl, glob_context);
+        errors += syntax_check(fun_decl, glob_context, limit);
+        if (errors >= limit) {
+            return errors;
+        }
     }
 
-    return succ;
+    return errors;
 }
 
 
