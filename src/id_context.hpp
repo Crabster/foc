@@ -6,8 +6,8 @@
 namespace foc {
 
 struct IDContext {
-    IDContext(bool debug);
-    IDContext();
+    IDContext(std::shared_ptr<IDContext> given_parent_context, bool debug);
+    IDContext(std::shared_ptr<IDContext> given_parent_context);
     ~IDContext();
 
     std::shared_ptr<IDContext> parent_context;

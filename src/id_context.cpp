@@ -3,12 +3,14 @@
 
 namespace foc {
 
-IDContext::IDContext(bool do_debug) {
+IDContext::IDContext(std::shared_ptr<IDContext> given_parent_context, bool do_debug) {
+    parent_context = given_parent_context;
     debug = do_debug;
 }
 
-IDContext::IDContext() {
-    debug = false;
+IDContext::IDContext(std::shared_ptr<IDContext> given_parent_context) {
+    parent_context = given_parent_context;
+    debug = parent_context && parent_context->debug;
 }
 
 IDContext::~IDContext() {
