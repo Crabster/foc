@@ -636,10 +636,10 @@ unsigned syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, b
             errors += syntax_check(std::get<Flow>(part.var), context, in_cycle, ret_type, limit);
             continue;
         } else if (std::holds_alternative<Expr>(part.var)) {
-            res &= get_expr_type(std::get<Expr>(part.var), context).has_value();
+            errors += get_expr_type(std::get<Expr>(part.var), context).has_value() ? 0 : 1;
             continue;
         } else if (std::holds_alternative<Print>(part.var)) {
-            res &= get_expr_type(std::get<Print>(part.var).expr, context).has_value();
+            errors += get_expr_type(std::get<Print>(part.var).expr, context).has_value() ? 0 : 1;
             continue;
         } else {
             throw std::logic_error("Bug in parser, empty body");
