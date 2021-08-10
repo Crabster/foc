@@ -113,6 +113,8 @@ struct Flow;
 
 struct Print {
     Expr expr;
+
+    std::string to_string() const;
 };
 
 struct FunBodyPart {
