@@ -299,6 +299,9 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             return {};
         }
         result = std::get<Type::Array>(ltype->var).first;
+        if (!result) {
+            throw std::logic_error("12345");
+        }
 
     } else if (std::holds_alternative<DerefTuple>(expr.var)) {
         const auto& tuple_expr = std::get<DerefTuple>(expr.var).tuple_expr;
@@ -329,6 +332,9 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             return {};
         }
         result = types[*opt_index];
+        if (!result) {
+            throw std::logic_error("54321");
+        }
 
     } else if (std::holds_alternative<FunCall>(expr.var)) {
         const auto& fun = std::get<FunCall>(expr.var).fun;
@@ -349,6 +355,9 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             return {};
         }
         result = std::get<Type::Fun>(f_type->var).second;
+        if (!result) {
+            throw std::logic_error("11111");
+        }
 
     } else if (std::holds_alternative<ID>(expr.var)) {
         if (!context->is_declared(std::get<ID>(expr.var))) {
@@ -410,7 +419,7 @@ unsigned syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context, u
             if (!decl.type) {
                 throw std::logic_error("Error in parser, using `_ x;`");
             }
-            return add_vec_context(decl.ids, *decl.type, context);
+            return add_vec_context(decl.ids, *decl.type, context) ? 0 : 1;
     }
     auto opt_type = get_expr_type(*decl.expr, context);
     if (!opt_type) {
@@ -418,7 +427,7 @@ unsigned syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context, u
     }
     Type expr_type = *opt_type;
     if (!decl.type) {
-        return add_vec_context(decl.ids, expr_type, context);
+        return add_vec_context(decl.ids, expr_type, context) ? 0 : 1;
     }
     if (!decl.type->is_equivalent(expr_type)) {
         std::cerr << "TypeError: expression does not match declared type -- ";
@@ -542,21 +551,21 @@ unsigned syntax_check(const IfCond& if_cond, std::shared_ptr<IDContext> context,
         errors += 1;
     }
     auto loc_context = std::make_shared<IDContext>(context);
-    errors += syntax_check(if_cond.body, loc_context, in_cycle, ret_type, limit);
+    errors += syntax_check(if_cond.body, loc_context, in_cycle, ret_type, limit - errors);
     return errors;
 }
 
 unsigned syntax_check(const Cond& cond, std::shared_ptr<IDContext> context, bool in_cycle, const Type& ret_type, unsigned limit) {
     unsigned errors = 0;
     for (const auto& ifcond : cond.if_conds) {
-        errors += syntax_check(ifcond, context, in_cycle, ret_type, limit);
+        errors += syntax_check(ifcond, context, in_cycle, ret_type, limit - errors);
         if (errors >= limit) {
             return errors;
         }
     }
     if (cond.else_body) {
         auto loc_context = std::make_shared<IDContext>(context);
-        errors += syntax_check(*cond.else_body, loc_context, in_cycle, ret_type, limit);
+        errors += syntax_check(*cond.else_body, loc_context, in_cycle, ret_type, limit - errors);
     }
     return errors;
 }
@@ -572,7 +581,7 @@ unsigned syntax_check(const Loop& loop, std::shared_ptr<IDContext> context, bool
         errors += 1;
     }
     auto loc_context = std::make_shared<IDContext>(context);
-    errors += syntax_check(loop.body, loc_context, true, ret_type, limit);
+    errors += syntax_check(loop.body, loc_context, true, ret_type, limit - errors);
     return errors;
 }
 
@@ -627,13 +636,13 @@ unsigned syntax_check(const FunBody& body, std::shared_ptr<IDContext> context, b
             return errors;
         }
         if (std::holds_alternative<VarDecl>(part.var)) {
-            errors += syntax_check(std::get<VarDecl>(part.var), context, limit);
+            errors += syntax_check(std::get<VarDecl>(part.var), context, limit - errors);
             continue;
         } else if (std::holds_alternative<Assign>(part.var)) {
-            errors += syntax_check(std::get<Assign>(part.var), context, limit);
+            errors += syntax_check(std::get<Assign>(part.var), context, limit - errors);
             continue;
         } else if (std::holds_alternative<Flow>(part.var)) {
-            errors += syntax_check(std::get<Flow>(part.var), context, in_cycle, ret_type, limit);
+            errors += syntax_check(std::get<Flow>(part.var), context, in_cycle, ret_type, limit - errors);
             continue;
         } else if (std::holds_alternative<Expr>(part.var)) {
             errors += get_expr_type(std::get<Expr>(part.var), context).has_value() ? 0 : 1;
@@ -659,13 +668,22 @@ unsigned syntax_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_co
 unsigned syntax_check(const Program& prog, bool debug_mode, unsigned limit) {
     auto glob_context = std::make_shared<IDContext>(nullptr, debug_mode);
     unsigned errors = 0;
+    bool main_decl = false;
 
     for (const auto& fun_decl : prog.decls) {
         glob_context->add_context(fun_decl.id, create_fun_type(fun_decl));
+        main_decl |= "main" == fun_decl.id.name;
+    }
+
+    if (!main_decl) {
+        // Maybe add test for "no imput" or smthng
+        // Also maybe forbid the name shadowing of the outer fctions?
+        std::cerr << "Error: No function called main!" << std::endl;
+        errors += 1;
     }
 
     for (const auto& fun_decl : prog.decls) {
-        errors += syntax_check(fun_decl, glob_context, limit);
+        errors += syntax_check(fun_decl, glob_context, limit - errors);
         if (errors >= limit) {
             return errors;
         }
