@@ -123,7 +123,6 @@ antlrcpp::Any CodeVisitor::visitCond(FocParser::CondContext *ctx) {
     Cond cond;
     cond.if_conds.push_back(if_cond);
     std::copy(elif_conds.begin(), elif_conds.end(), std::back_inserter(cond.if_conds));
-    std::cout << cond.if_conds.size() << std::endl;
     cond.else_body = visitElseCond(ctx->elseCond()).as<std::optional<FunBody>>();
     return cond;
 }
