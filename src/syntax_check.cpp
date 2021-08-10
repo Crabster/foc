@@ -161,7 +161,7 @@ std::optional<Type> get_op_type(const BinOperation::Operator& op, const Type& l_
         std::cerr << "TypeError: Using int comparators on non-int types" << std::endl;
         return {};
     default:
-        throw std::logic_error("Bug in parser, unknown operand");
+        throw std::logic_error("Bug in parser, unknown operand -- get_op_type");
         break;
     }
     return {};
@@ -191,7 +191,7 @@ std::optional<int> apply_op(BinOperation::Operator op, int l, int r) {
     case BinOperation::Operator::GEQ:
         return {};
     default:
-        throw std::logic_error("Bug in parser, unknown operand");
+        throw std::logic_error("Bug in parser, unknown operand -- apply_op");
         break;
     }
     return {};
@@ -202,7 +202,7 @@ std::optional<int> get_valid_index(const Expr& expr) {
     if (std::holds_alternative<BinOperation>(expr.var)) {
         const auto& binop = std::get<BinOperation>(expr.var);
         if (!binop.left_expr || !binop.right_expr) {
-            throw std::logic_error("Wtf empty binop?!?");
+            throw std::logic_error("Bug in parser or specification, empty bin-op -- get_valid_index");
         }
         auto l_res = get_valid_index(*binop.left_expr);
         auto r_res = get_valid_index(*binop.right_expr);
@@ -268,7 +268,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
     if (std::holds_alternative<BinOperation>(expr.var)) {
         const auto& op_expr = std::get<BinOperation>(expr.var);
         if (!op_expr.left_expr || !op_expr.right_expr) {
-            throw std::logic_error("Wtf man, empty binopexpr???");
+            throw std::logic_error("Bug in parser or specification, empty bin-op expr -- get_expr_type");
         }
         auto ltype = get_expr_type(*op_expr.left_expr, context);
         auto rtype = get_expr_type(*op_expr.right_expr, context);
@@ -284,7 +284,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
         const auto& arr_expr = std::get<DerefArray>(expr.var).array_expr;
         const auto& deref_expr = std::get<DerefArray>(expr.var).deref_expr;
         if (!arr_expr || !deref_expr) {
-            throw std::logic_error("Wtf man, empty derefArray???");
+            throw std::logic_error("Bug in parser or specification, empty derefArray -- get_expr_type");
         }
         auto ltype = get_expr_type(*arr_expr, context);
         auto rtype = get_expr_type(*deref_expr, context);
@@ -302,14 +302,14 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
         }
         result = std::get<Type::Array>(ltype->var).first;
         if (!result) {
-            throw std::logic_error("12345");
+            throw std::logic_error("Bug in parser or specification, empty Array.first -- get_expr_type");
         }
 
     } else if (std::holds_alternative<DerefTuple>(expr.var)) {
         const auto& tuple_expr = std::get<DerefTuple>(expr.var).tuple_expr;
         const auto& deref_expr = std::get<DerefTuple>(expr.var).deref_expr;
         if (!tuple_expr || !deref_expr) {
-            throw std::logic_error("Wtf man, empty derefTuple???");
+            throw std::logic_error("Bug in parser or specification, empty derefTuple -- get_expr_type");
         }
         auto ltype = get_expr_type(*tuple_expr, context);
         if (!ltype) {
@@ -335,14 +335,14 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
         }
         result = types[*opt_index];
         if (!result) {
-            throw std::logic_error("54321");
+            throw std::logic_error("Bug in parser or specification, empty Tuple[index] -- get_expr_type");
         }
 
     } else if (std::holds_alternative<FunCall>(expr.var)) {
         const auto& fun = std::get<FunCall>(expr.var).fun;
         const auto& args = std::get<FunCall>(expr.var).fun_args;
         if (!fun) {
-            throw std::logic_error("Wtf empty fun fun?!?");
+            throw std::logic_error("Bug in parser or specification, empty FunCall.fun -- get_expr_type");
         }
         auto f_type = get_expr_type(*fun, context);
         if (!f_type) {
@@ -358,7 +358,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
         }
         result = std::get<Type::Fun>(f_type->var).second;
         if (!result) {
-            throw std::logic_error("11111");
+            throw std::logic_error("Bug in parser or specification, empty Fun.second -- get_expr_type");
         }
 
     } else if (std::holds_alternative<ID>(expr.var)) {
@@ -369,7 +369,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
         }
         result = context->find_type(std::get<ID>(expr.var));
         if (!result) {
-            throw std::logic_error("Wtf, ID is declared, but cannot be found?");
+            throw std::logic_error("Bug in parser or specification, ID is declared, but cannot be found -- get_expr_type");
         }
 
     } else if (std::holds_alternative<TypeExpr>(expr.var)) {
@@ -379,7 +379,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
         result = std::visit(visit_cb, std::get<TypeExpr>(expr.var).expr);
 
     } else {
-        throw std::logic_error("Idk man, empty expr?");
+        throw std::logic_error("Bug in parser or specification, empty Expr -- get_expr_type");
     }
 
     if (expr.minus && result) {
@@ -419,7 +419,7 @@ bool add_vec_context(const std::optional<std::vector<ID>>& ids, const Type& curr
 unsigned syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context, unsigned limit) {
     if (!decl.expr) {
             if (!decl.type) {
-                throw std::logic_error("Error in parser, using `_ x;`");
+                throw std::logic_error("Error in parser, using `_ x;` -- syntax_check(Vardecl)");
             }
             return add_vec_context(decl.ids, *decl.type, context) ? 0 : 1;
     }
@@ -496,13 +496,13 @@ bool is_lvalue(const Expr& expr) {
     } else if (std::holds_alternative<DerefArray>(expr.var)) {
         const auto& arr_expr = std::get<DerefArray>(expr.var).array_expr;
         if (!arr_expr) {
-            throw std::logic_error("Wtf man, empty derefArray???");
+            throw std::logic_error("Bug in parser or specification, empty derefArray -- is_lvalue(Expr)");
         }
         return is_lvalue(*arr_expr);
     } else if (std::holds_alternative<DerefTuple>(expr.var)) {
         const auto& tuple_expr = std::get<DerefTuple>(expr.var).tuple_expr;
         if (!tuple_expr) {
-            throw std::logic_error("Wtf man, empty derefTuple???");
+            throw std::logic_error("Bug in parser or specification, empty derefTuple -- is_lvalue(Expr)");
         }
         return is_lvalue(*tuple_expr);
     } else if (std::holds_alternative<FunCall>(expr.var)) {
@@ -516,7 +516,7 @@ bool is_lvalue(const Expr& expr) {
         };
         return std::visit(visit_cb, std::get<TypeExpr>(expr.var).expr);
     } else {
-        throw std::logic_error("Idk man, empty expr?");
+        throw std::logic_error("Bug in parser or specification, empty Expr -- is_lvalue(Expr)");
     }
     return true;
 }

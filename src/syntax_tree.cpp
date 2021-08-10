@@ -67,7 +67,7 @@ bool Type::is_equivalent(const Type& other) const {
         }
         return ft.second.is_equivalent(ot.second);
     }
-    throw std::logic_error("I think I should throw error here");
+    throw std::logic_error("Bug in parser or specification, empty Type -- Type::is_equivalent");
     return false;
 }
 
@@ -149,8 +149,9 @@ std::string Expr::to_string() const {
     } else if (std::holds_alternative<TypeExpr>(var)) {
         return m + std::get<TypeExpr>(var).to_string();
     } else {
-        throw std::logic_error("Expr::to_string -- dyn_var out of range");
+        throw std::logic_error("Bug in parser or specification, Expr::to_string -- dyn_var out of range");
     }
+    // This place is unreachable, but I hate warnings
     return "TODO_E";
 }
 
@@ -182,8 +183,9 @@ std::string op_to_string(BinOperation::Operator o) {
     case BinOperation::Operator::GEQ:
         return " >= ";
     default:
-        throw std::logic_error("Operator to_string -- enum out of range");
+        throw std::logic_error("Bug in parser or specification, Operator::to_string -- enum out of range");
     }
+    // This place is unreachable, but I hate warnings
     return "???";
 }
 
@@ -246,7 +248,7 @@ std::string PtrExpr::to_string() const {
         return "&$";
     }
     if (ref_expr && deref_expr) {
-        throw std::logic_error("Ptr expr have both ref and deref");
+        throw std::logic_error("Bug in parser or specification, Ptr expr have both ref and deref -- PtrExpr::to_string");
     }
     if (ref_expr) {
         return "&" + ref_expr->to_string();
@@ -295,9 +297,14 @@ std::string TypeExpr::to_string() const {
     } else if (std::holds_alternative<ArrayExpr>(expr)) {
         return std::get<ArrayExpr>(expr).to_string();
     } else {
-        throw std::logic_error("TypeExpr:to_string -- variant out of range");
+        throw std::logic_error("Bug in parser or specification, TypeExpr::to_string -- variant out of range");
     }
+    // This place is unreachable, but I hate warnings
     return "TODO_TE";
+}
+
+std::string Print::to_string() const {
+    return "print(" + expr.to_string() + ");\n";
 }
 
 std::string FunBodyPart::to_string() const {
@@ -310,11 +317,9 @@ std::string FunBodyPart::to_string() const {
     } else if (std::holds_alternative<Expr>(var)) {
         return std::get<Expr>(var).to_string();
     } else if (std::holds_alternative<Print>(var)) {
-        std::string str = "print(";
-        str += std::get<Print>(var).expr.to_string();
-        return str + ");\n";
+        return std::get<Print>(var).to_string();
     } else {
-        throw std::logic_error("Error in FunBodyPart::to_string -- holds_alternative didnt catch");
+        throw std::logic_error("Bug in parser or specification, FunBodyPart::to_string -- holds_alternative didnt catch");
     }
 }
 
@@ -342,7 +347,7 @@ std::string Type::to_string() const {
         case Primitive::BOOL:
             return "B";
         default:
-            throw std::logic_error("Type::to_string -- primitive enum out of range");
+            throw std::logic_error("Bug in parser or specification, Type::to_string -- primitive enum out of range");
         }
     } else if (std::holds_alternative<Ptr>(var)) {
         const auto& p = std::get<Ptr>(var);
@@ -370,8 +375,9 @@ std::string Type::to_string() const {
         cheat.var = Type::Tuple(p.first);
         return "(" + cheat.to_string() + "->" + p.second.to_string() + ")";
     } else {
-        throw std::logic_error("Type::to_string -- dyn_var out of range");
+        throw std::logic_error("Bug in parser or specification, Type::to_string -- dyn_var out of range");
     }
+    // This code is unreachable, but I hate warnings
     return "TODO_T";
 }
 
@@ -457,14 +463,14 @@ std::string Flow::to_string() const {
             ret_value = ctrl.second ? " " + ctrl.second->to_string() : "";
             return "RETURN" + ret_value + ";\n";
         default:
-            throw std::logic_error("Flow::to_string -- ctrl types non-exhaustive");
+            throw std::logic_error("Bug in parser or specification, Flow::to_string -- ctrl types non-exhaustive");
         }
     } else if (std::holds_alternative<Cond>(var)) {
         return std::get<Cond>(var).to_string();
     } else if (std::holds_alternative<Loop>(var)) {
         return std::get<Loop>(var).to_string();
     } else {
-        throw std::logic_error("Flow::to_string -- variant smth smth");
+        throw std::logic_error("Bug in parser or specification, Flow::to_string -- nonexhaustive variant");
     }
 }
 
