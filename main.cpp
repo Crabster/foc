@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     stream.open(file_name);
 
     // Maybe make option to get these from command line
-    unsigned limit = 20;
+    unsigned limit = 1;
     bool debug_mode = false;
 
     antlr4::ANTLRInputStream input(stream);
@@ -36,8 +36,10 @@ int main(int argc, char* argv[]) {
         std::cout << "Compilation was succesfull." << std::endl;
     } else if (errors >= limit) {
         std::cout << "Too many errors, compilations stopped" << std::endl;
+        return 1;
     } else {
         std::cout << "Compilation was not succesfull: " << errors << " errors!" << std::endl;
+        return 1;
     }
 
     foc::CodeGenerator code_gen("example.asm");
