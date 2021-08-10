@@ -120,7 +120,7 @@ std::optional<Type> get_texpr_type(const ArrayExpr& expr, std::shared_ptr<IDCont
 
 std::optional<Type> get_op_type(const BinOperation::Operator& op, const Type& l_type, const Type& r_type) {
     if (!l_type.is_equivalent(r_type)) {
-        std::cerr << "Types of left and right expression don't match -- ";
+        std::cerr << "Error: Types of left and right expression in binary operation don't match -- ";
         std::cerr << l_type.to_string() << " vs " << r_type.to_string() << std::endl;
         return {};
     }
@@ -137,9 +137,11 @@ std::optional<Type> get_op_type(const BinOperation::Operator& op, const Type& l_
         return {};
     case BinOperation::Operator::IS_EQUAL:
     case BinOperation::Operator::NOT_EQUAL:
-        // Maybe forbid smthng like f = g? But we'll see
-        // when we will do assembler :shrug:
-        return make_bool();
+        if (std::holds_alternative<Type::Primitive>(l_type.var)) {
+            return make_bool();
+        }
+        std::cerr << "ForbiddenError: Using equality operators on non-primitive types" << std::endl;
+        return {};
     case BinOperation::Operator::AND:
     case BinOperation::Operator::OR:
         if (std::holds_alternative<Type::Primitive>(l_type.var)
@@ -175,7 +177,7 @@ std::optional<int> apply_op(BinOperation::Operator op, int l, int r) {
         return { l*r };
     case BinOperation::Operator::SLASH:
         if (r == 0) {
-            std::cerr << "Error: Div by 0" << std::endl;
+            std::cerr << "Error: Division by constant 0" << std::endl;
             return {};
         }
         return { l/r };
@@ -229,7 +231,7 @@ bool fun_args_matching(const Type::Fun& fun, const std::shared_ptr<std::vector<E
         if (fun_args.size() == 0) {
             return true;
         }
-        std::cerr << "Error: Function expects params (or compiler broke and gives empty sp)" << std::endl;
+        std::cerr << "Error: Function expects params (or compiler broke and gives empty sp, contact the devs)" << std::endl;
         return false;
     }
     const auto& real_args = *args;
@@ -347,7 +349,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
             return {};
         }
         if (!std::holds_alternative<Type::Fun>(f_type->var)) {
-            std::cerr << "TypeError: Trying to invoke a non-fun expr in " << expr.to_string() << std::endl;
+            std::cerr << "TypeError: Trying to invoke a non-function expression in " << expr.to_string() << std::endl;
             return {};
         }
         if (!fun_args_matching(std::get<Type::Fun>(f_type->var), args, context)) {
@@ -384,7 +386,7 @@ std::optional<Type> get_expr_type(const Expr& expr, std::shared_ptr<IDContext> c
         if (!std::holds_alternative<Type::Primitive>(result->var)
             || (std::get<Type::Primitive>(result->var) != Type::Primitive::INT
                 && std::get<Type::Primitive>(result->var) != Type::Primitive::BOOL)) {
-            std::cerr << "TypeError: using 'minus' to non-INT non-BOOL expression" << std::endl;
+            std::cerr << "TypeError: Using 'minus' to non-INT non-BOOL expression" << std::endl;
             std::cerr << "| in " << expr.to_string() << std::endl;
             return {};
         }
@@ -404,7 +406,7 @@ bool add_vec_context(const std::optional<std::vector<ID>>& ids, const Type& curr
                 && std::get<Type::Tuple>(curr_type.var).size() == 0) {
             return true;
         }
-        std::cerr << "TypeError: empty ids in variable declaration" << std::endl;
+        std::cerr << "TypeError: Empty ids in variable declaration" << std::endl;
         return false;
     }
     if (ids->size() == 1) {
@@ -430,7 +432,7 @@ unsigned syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context, u
         return add_vec_context(decl.ids, expr_type, context) ? 0 : 1;
     }
     if (!decl.type->is_equivalent(expr_type)) {
-        std::cerr << "TypeError: expression does not match declared type -- ";
+        std::cerr << "TypeError: Expression does not match declared type -- ";
         std::cerr << decl.type->to_string() << " vs " << expr_type.to_string() << std::endl;
         std::cerr << "| in " << decl.to_string() << std::endl;
         return 1;
@@ -440,22 +442,22 @@ unsigned syntax_check(const VarDecl& decl, std::shared_ptr<IDContext> context, u
 }
 
 bool is_lvalue(const int& expr) {
-    std::cerr << "Error: Ass into int" << std::endl;
+    std::cerr << "ForbiddenError: Assigning into int constant" << std::endl;
     return false;
 }
 
 bool is_lvalue(const char& expr) {
-    std::cerr << "Error: Ass into char" << std::endl;
+    std::cerr << "ForbiddenError: Assigning into char constant" << std::endl;
     return false;
 }
 
 bool is_lvalue(const std::string& expr) {
-    std::cerr << "Error: Ass into string" << std::endl;
+    std::cerr << "ForbiddenError: Assigning into string constant" << std::endl;
     return false;
 }
 
 bool is_lvalue(const bool& expr) {
-    std::cerr << "Error: Ass into bool" << std::endl;
+    std::cerr << "ForbiddenError: Assigning into bool constant" << std::endl;
     return false;
 }
 
@@ -466,7 +468,7 @@ bool is_lvalue(const PtrExpr& expr) {
     if (expr.deref_expr) {
         return is_lvalue(*expr.deref_expr);
     }
-    std::cerr << "Error: Assigning into &$" << std::endl;
+    std::cerr << "ForbiddenError: Assigning into &$" << std::endl;
     return false;
 }
 
@@ -489,7 +491,7 @@ bool is_lvalue(const ArrayExpr& expr) {
 bool is_lvalue(const Expr& expr) {
     // We will limit ourselves to only few stuff, that can be on the left
     if (std::holds_alternative<BinOperation>(expr.var)) {
-        std::cerr << "Error: trying to assign into bin-op" << std::endl;
+        std::cerr << "ForbiddenError: Trying to assign into binary operation" << std::endl;
         return false;
     } else if (std::holds_alternative<DerefArray>(expr.var)) {
         const auto& arr_expr = std::get<DerefArray>(expr.var).array_expr;
@@ -504,7 +506,7 @@ bool is_lvalue(const Expr& expr) {
         }
         return is_lvalue(*tuple_expr);
     } else if (std::holds_alternative<FunCall>(expr.var)) {
-        std::cerr << "Error: trying to ass into fun ret" << std::endl;
+        std::cerr << "ForbiddenError: Trying to assign into function return" << std::endl;
         return false;
     } else if (std::holds_alternative<ID>(expr.var)) {
         return true;
@@ -522,18 +524,23 @@ bool is_lvalue(const Expr& expr) {
 unsigned syntax_check(const Assign& ass, std::shared_ptr<IDContext> context, unsigned limit) {
     auto opt_ltype = get_expr_type(ass.assign_expr, context);
     auto opt_rtype = get_expr_type(ass.expr, context);
-    if (!opt_ltype || !opt_rtype) {
-        std::cerr << "Error: Ass bad" << std::endl;
+    if (!opt_ltype) {
+        std::cerr << "Error: Couldnt type the left side of the assignment" << std::endl;
+        std::cerr << "| in " << ass.to_string() << std::endl;
+        return 1;
+    }
+    if (!opt_rtype) {
+        std::cerr << "Error: Couldnt type the right side of the assignment" << std::endl;
         std::cerr << "| in " << ass.to_string() << std::endl;
         return 1;
     }
     if (!opt_ltype->is_equivalent(*opt_rtype)) {
-        std::cerr << "Error: Ass do not match" << std::endl;
+        std::cerr << "Error: Types of left and right side of the assignment do not match" << std::endl;
         std::cerr << "| in " << ass.to_string() << std::endl;
         return 1;
     }
     if (!is_lvalue(ass.assign_expr)) {
-        std::cerr << "Error: Stupid ass (not l-val)" << std::endl;
+        std::cerr << "Error: Forbidden expression on the left side of the assignment" << std::endl;
         std::cerr << "| in " << ass.to_string() << std::endl;
         return 1;
     }
@@ -665,20 +672,36 @@ unsigned syntax_check(const FunDecl& fun_decl, std::shared_ptr<IDContext> par_co
     return syntax_check(fun_decl.body, loc_context, false, fun_decl.ret_type, limit);
 }
 
+bool is_main(const FunDecl& fun_decl) {
+    if ("main" != fun_decl.id.name) {
+        return false;
+    }
+    if (!std::holds_alternative<Type::Primitive>(fun_decl.ret_type.var)
+        || std::get<Type::Primitive>(fun_decl.ret_type.var) != Type::Primitive::INT) {
+        std::cerr << "Error: Main function should return int" << std::endl;
+        return false;
+    }
+    if (fun_decl.args.size() != 0) {
+        std::cerr << "Error: Main function should take no arguments" << std::endl;
+        return false;
+    }
+    return true;
+}
+
 unsigned syntax_check(const Program& prog, bool debug_mode, unsigned limit) {
     auto glob_context = std::make_shared<IDContext>(nullptr, debug_mode);
     unsigned errors = 0;
     bool main_decl = false;
 
     for (const auto& fun_decl : prog.decls) {
-        glob_context->add_context(fun_decl.id, create_fun_type(fun_decl));
-        main_decl |= "main" == fun_decl.id.name;
+        if (!glob_context->add_strict_context(fun_decl.id, create_fun_type(fun_decl))) {
+            errors += 1;
+        }
+        main_decl |= is_main(fun_decl);
     }
 
     if (!main_decl) {
-        // Maybe add test for "no imput" or smthng
-        // Also maybe forbid the name shadowing of the outer fctions?
-        std::cerr << "Error: No function called main!" << std::endl;
+        std::cerr << "Error: No function called main with no input and INT output!" << std::endl;
         errors += 1;
     }
 
