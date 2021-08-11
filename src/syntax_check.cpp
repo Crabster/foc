@@ -551,10 +551,10 @@ unsigned syntax_check(const IfCond& if_cond, std::shared_ptr<IDContext> context,
     auto cond_type = get_expr_type(if_cond.expr, context);
     unsigned errors = 0;
     if (!cond_type.has_value()) {
-        std::cerr << "Error: Couldnt create the type of the condition in if" << std::endl;
+        std::cerr << "Error: Couldn't create the type of the condition in if" << std::endl;
         errors += 1;
     } else if (!is_bool(*cond_type)) {
-        std::cerr << "Error: The condition in if isnt boolean" << std::endl;
+        std::cerr << "Error: The condition in if isn't boolean" << std::endl;
         errors += 1;
     }
     auto loc_context = std::make_shared<IDContext>(context);
