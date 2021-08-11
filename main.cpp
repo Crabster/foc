@@ -35,10 +35,10 @@ int main(int argc, char* argv[]) {
     if (errors == 0) {
         std::cout << "Compilation was succesfull." << std::endl;
     } else if (errors >= limit) {
-        std::cout << "Too many errors, compilations stopped" << std::endl;
+        std::cout << "Too many errors, compilation stopped" << std::endl;
         return 1;
     } else {
-        std::cout << "Compilation was not succesfull: " << errors << " errors!" << std::endl;
+        std::cout << "Compilation was not successful: " << errors << " errors!" << std::endl;
         return 1;
     }
 
