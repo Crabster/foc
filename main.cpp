@@ -12,6 +12,7 @@ void print_help() {
     std::cout << "Possible arguments:\n";
     std::cout << "\t -h \t\t -> Prints help\n";
     std::cout << "\t -i `path` \t -> Compiles file on `path`\n";
+    std::cout << "\t -o `path` \t -> Executable file's `path`\n";
     std::cout << "\t -d \t\t -> Enables debug mode for the compiler\n";
     std::cout << "\t -e `num` \t -> Compilation stops after `num` errors (default 10)" << std::endl;
 }
@@ -23,8 +24,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string file_name;
-    bool set_filename = false;
+    std::optional<std::string> file_name;
+    std::string out_file_name = "example";
     unsigned limit = 10;
     bool debug_mode = false;
 
@@ -57,7 +58,14 @@ int main(int argc, char* argv[]) {
                 return 1;
             }
             file_name = argv[i+1];
-            set_filename = true;
+            ++i;
+        } else if (curr == "-o") {
+            if (i + 1 >= argc) {
+                std::cout << "Invalid use, argument `-o` without path" << std::endl;
+                print_help();
+                return 1;
+            }
+            out_file_name = argv[i+1];
             ++i;
         } else {
             std::cout << "Invalid use, unknown argument `" << curr << "`" << std::endl;
@@ -66,16 +74,16 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if (!set_filename) {
+    if (!file_name) {
         std::cout << "Invalid use, no filepath given" << std::endl;
         print_help();
         return 1;
     }
 
     std::ifstream stream;
-    stream.open(file_name);
+    stream.open(*file_name);
     if (stream.fail()) {
-        std::cout << "Couldn't open file `" << file_name << "`" << std::endl;
+        std::cout << "Couldn't open file `" << *file_name << "`" << std::endl;
         print_help();
         return 1;
     }
@@ -104,7 +112,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    foc::CodeGenerator code_gen("example.asm");
+    foc::CodeGenerator code_gen(out_file_name + ".asm");
     code_gen.generate_asm(program);
-    std::system("nasm -f elf64 -o example.o example.asm && ld -o example example.o");
+    std::string assembler_command{"nasm -f elf64 -o " + out_file_name + ".o " +
+                out_file_name + ".asm && ld -o " +
+                out_file_name + " " + out_file_name + ".o"};
+    std::system(assembler_command.c_str());
 }

@@ -1,0 +1,5 @@
+# main() {
+    [@, 5] str = "hello";
+    print(str[2]);
+    return str[2];
+}

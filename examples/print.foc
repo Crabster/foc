@@ -1,0 +1,16 @@
+# print_array([#, 8] arr) {
+    # i = 0;
+    # x = 0;
+    while (i < 8) {
+        x = arr[i];
+        print(x);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# main() {
+    [#, 8] arr = "abcdefgh";
+    print_array(arr);
+    return 0;
+}

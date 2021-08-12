@@ -1,0 +1,13 @@
+# print_array([#, 11] arr) {
+    # i = 0;
+    while (i < 11) {
+        print(arr[i]);
+        i = i + 1;
+    }
+    return 0;
+}
+
+# main() {
+    print_array("Hello world");
+    return 0;
+}
