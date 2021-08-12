@@ -1,0 +1,8 @@
+# f([#, 3] arr) {
+    return arr<1>;
+}
+
+# main() {
+    # i = [1, 2, 3];
+    return i;
+}
