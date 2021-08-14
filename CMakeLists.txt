@@ -28,11 +28,9 @@ find_package(ANTLR REQUIRED)
 antlr_target(Foc Foc.g4 VISITOR PACKAGE foc)
 
 # include generated files in project environment
-message(INFO ${ANTLR_Foc_OUTPUT_DIR})
-message(INFO ${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${ANTLR_Foc_OUTPUT_DIR})
 
-# add generated grammar to demo binary target
+# add generated grammar to foc binary target
 file(GLOB sources src/*)
-add_executable(demo main.cpp ${sources} ${ANTLR_Foc_CXX_OUTPUTS})
-target_link_libraries(demo antlr4_static)
+add_executable(foc main.cpp ${sources} ${ANTLR_Foc_CXX_OUTPUTS})
+target_link_libraries(foc antlr4_static)
